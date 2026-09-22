@@ -88,13 +88,14 @@ export function renderDreamArchive(root: HTMLElement): () => void {
       <article class="dream-archive__card dream-archive__card--issue" style="--tilt:${tilt}deg;">
         ${renderCoverFace({
           imageUrl: r.coverImageUrl ? absoluteUrl(r.coverImageUrl) : null,
-          title: r.zineTitle || r.seedText || "Untitled issue",
+          title: cover.title || r.zineTitle || r.seedText || "Untitled issue",
           issueNumber: r.issueNumber,
           date: new Date(r.createdAt).toLocaleDateString(),
           posterLine: cover.posterLine,
           contrast: cover.contrast,
           focalX: cover.focalX,
           focalY: cover.focalY,
+          showText: cover.showText,
         })}
         <div class="dream-archive__card-actions">
           <a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" target="_blank" rel="noopener">Open issue</a>

@@ -34,6 +34,11 @@ export interface ZinePageEntry {
   sceneIndex: number;
   caption?: string;
   layout: "full" | "image-caption" | "text-led";
+  /** how the image fills its frame — only meaningful for "full"/"image-caption"; "text-led" always fits without cropping */
+  imageMode?: "fit" | "fill";
+  /** crop anchor 0-100 (CSS object-position convention), only used when imageMode is "fill" */
+  focalX?: number;
+  focalY?: number;
 }
 
 export interface RunDetail {

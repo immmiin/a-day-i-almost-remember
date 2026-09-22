@@ -32,54 +32,41 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* The wordmark: "a day i" sits small and quiet above, "almost remember"
-   carries the weight — and carries its own faint double-exposure echo, a
-   second ghost copy of the same words slightly offset and blurred behind
-   it, as if the memory itself doesn't quite land in one place. The
-   foreground text stays fully opaque so it's never harder to read, only
-   quietly haunted. */
+/* Home is a plain outline icon, not a wordmark — the project's full name
+   stays prominent where it belongs: the landing page and the publication
+   cover, not repeated small in every nav bar. A generous square hit area
+   keeps it easy to hit on touch without visually growing the icon. */
 .dream-nav__brand {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12em;
-  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.6rem;
+  border-radius: 8px;
   color: #fff;
-  line-height: 1;
+  opacity: 0.8;
+  transition: opacity 140ms var(--ease-out), background-color 140ms var(--ease-out);
 }
 
-.dream-nav__brand-top {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  opacity: 0.55;
+.dream-nav__brand-icon {
+  display: block;
 }
 
-.dream-nav__brand-main {
-  position: relative;
-  display: inline-block;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: clamp(0.98rem, 2.2vw, 1.15rem);
-  letter-spacing: 0.01em;
-  opacity: 0.97;
+.dream-nav__brand:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.dream-nav__brand-main::after {
-  content: attr(data-echo);
-  position: absolute;
-  left: 0.06em;
-  top: 0.1em;
-  color: transparent;
-  -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.4);
-  filter: blur(1.5px);
-  z-index: -1;
-  opacity: 0.65;
-  pointer-events: none;
+.dream-nav__brand:focus-visible {
+  opacity: 1;
+  outline: 1px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
 }
 
 .dream-nav__links {
   display: flex;
+  align-items: center;
   gap: 1.4rem;
 }
 
@@ -125,10 +112,7 @@
 
 @media (max-width: 520px) {
   .dream-nav {
-    padding: 0.6rem 1rem;
-  }
-  .dream-nav__brand-top {
-    display: none;
+    padding: 0.6rem 0.7rem;
   }
   .dream-nav__links {
     gap: 0.9rem;

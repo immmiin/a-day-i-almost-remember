@@ -1,14 +1,34 @@
 /* The one masthead lockup a stack of covers shares — reused verbatim by
-   the Zine Studio editor preview and the Dream Archive shelf. */
+   the Zine Studio editor preview and the Dream Archive shelf.
+
+   Hierarchy is conventional editorial, not decorative: the masthead is
+   the one dominant text element, the issue title is noticeably smaller,
+   issue-number/date are quiet metadata, and the poster line is smallest
+   and simply absent when empty. One display serif (masthead + title),
+   one supporting sans (metadata + poster line) — nothing here is set in
+   italic by default. Each cluster sits on its own content-sized chip,
+   not a full-width band, so the photograph stays the dominant element. */
 
 .zine-cover {
   position: relative;
   aspect-ratio: 148 / 210;
-  border-radius: 6px;
+  border-radius: 0; /* the printed page itself is square-cornered; the card/frame around it may still be rounded */
   overflow: hidden;
   isolation: isolate;
   background: var(--dream-plum);
   box-shadow: 0 22px 40px -22px rgba(20, 14, 22, 0.55);
+}
+
+.zine-cover--ink {
+  --zc-chip-bg: rgba(20, 14, 22, 0.62);
+  --zc-chip-fg: #fff;
+  --zc-chip-fg-muted: rgba(255, 255, 255, 0.78);
+}
+
+.zine-cover--paper {
+  --zc-chip-bg: rgba(241, 233, 219, 0.85);
+  --zc-chip-fg: var(--dream-ink);
+  --zc-chip-fg-muted: var(--dream-ink-soft);
 }
 
 .zine-cover__img {
@@ -32,117 +52,94 @@
 
 .zine-cover__masthead {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 0.75rem 0.85rem 1.6rem;
-  display: grid;
-  gap: 0.25rem;
-  background: linear-gradient(180deg, rgba(20, 14, 22, 0.62), transparent);
-}
-
-.zine-cover--paper .zine-cover__masthead {
-  background: linear-gradient(180deg, rgba(241, 233, 219, 0.78), transparent);
-}
-
-.zine-cover__kicker {
-  font-family: var(--font-archive-mono, var(--font-mono));
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0.85;
-}
-
-.zine-cover--paper .zine-cover__kicker {
-  color: var(--dream-ink);
+  top: 0.85rem;
+  left: 0.85rem;
+  right: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
 }
 
 .zine-cover__wordmark {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-  color: #fff;
-}
-
-.zine-cover--paper .zine-cover__wordmark {
-  color: var(--dream-ink);
-}
-
-.zine-cover__wordmark-top {
-  font-family: var(--font-mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.zine-cover__wordmark-main {
-  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.22em 0.4em;
+  border-radius: 3px;
+  background: var(--zc-chip-bg);
+  color: var(--zc-chip-fg);
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.92rem;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 0.98rem;
+  line-height: 1.15;
+  letter-spacing: 0.005em;
 }
 
-.zine-cover--lg .zine-cover__wordmark-main {
-  font-size: 1.35rem;
+.zine-cover--lg .zine-cover__wordmark {
+  font-size: 1.5rem;
 }
 
-.zine-cover__wordmark-main::after {
-  content: attr(data-echo);
-  position: absolute;
-  left: 0.05em;
-  top: 0.09em;
-  color: transparent;
-  -webkit-text-stroke: 0.5px currentColor;
-  opacity: 0.35;
-  filter: blur(1px);
-  z-index: -1;
+.zine-cover__kicker {
+  display: inline-block;
+  padding: 0.16em 0.4em;
+  border-radius: 3px;
+  background: var(--zc-chip-bg);
+  color: var(--zc-chip-fg-muted);
+  font-family: var(--font-body);
+  font-size: 0.52rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.zine-cover--lg .zine-cover__kicker {
+  font-size: 0.64rem;
 }
 
 .zine-cover__foot {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 1.1rem 0.85rem 0.9rem;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
   display: grid;
-  gap: 0.3rem;
-  background: linear-gradient(0deg, rgba(20, 14, 22, 0.72), transparent);
-}
-
-.zine-cover--paper .zine-cover__foot {
-  background: linear-gradient(0deg, rgba(241, 233, 219, 0.85), transparent);
+  gap: 0.2rem;
+  justify-items: start;
 }
 
 .zine-cover__title {
+  display: inline-block;
+  max-width: 100%;
   margin: 0;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  background: var(--zc-chip-bg);
+  color: var(--zc-chip-fg);
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: 0.95rem;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 0.76rem;
   line-height: 1.25;
-  color: #fff;
 }
 
 .zine-cover--lg .zine-cover__title {
-  font-size: 1.3rem;
-}
-
-.zine-cover--paper .zine-cover__title {
-  color: var(--dream-ink);
+  font-size: 1.02rem;
 }
 
 .zine-cover__poster-line {
+  display: inline-block;
+  max-width: 100%;
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.85);
+  padding: 0.16em 0.4em;
+  border-radius: 3px;
+  background: var(--zc-chip-bg);
+  color: var(--zc-chip-fg-muted);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.52rem;
 }
 
-.zine-cover--paper .zine-cover__poster-line {
-  color: var(--dream-ink-soft);
+.zine-cover--lg .zine-cover__poster-line {
+  font-size: 0.62rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {

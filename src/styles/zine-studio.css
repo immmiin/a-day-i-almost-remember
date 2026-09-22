@@ -101,7 +101,8 @@
 
 .zine-studio__preview-placeholder {
   aspect-ratio: 148 / 210;
-  border-radius: 8px;
+  max-width: 300px;
+  border-radius: 0;
   border: 1px dashed color-mix(in srgb, var(--dream-ink) 30%, transparent);
   display: grid;
   place-items: center;
@@ -292,6 +293,7 @@
 }
 
 .zine-studio__cover-sliders input[type="range"] {
+  max-width: 180px; /* excessively wide sliders read as unfinished controls */
   accent-color: var(--dream-lilac-deep);
 }
 
@@ -306,6 +308,42 @@
   color: var(--dream-paper);
 }
 
+/* Groups related cover controls (image / text / visibility) so the left
+   column reads as sections, not one long undifferentiated list. */
+.zine-studio__field-group {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--dream-ink) 12%, transparent);
+}
+
+.zine-studio__field-group:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.zine-studio__field-group-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dream-ink-soft);
+  opacity: 0.75;
+}
+
+.zine-studio__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dream-ink);
+}
+
+.zine-studio__checkbox input {
+  accent-color: var(--dream-lilac-deep);
+}
+
 @media (max-width: 640px) {
   .zine-studio__cover-layout {
     grid-template-columns: 1fr;
@@ -318,9 +356,23 @@
 
 .zine-studio__editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 1.75rem;
   align-items: start;
+}
+
+.zine-studio__pages-col {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.zine-studio__pages-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .zine-studio__pages-list {
@@ -341,6 +393,11 @@
   background: var(--dream-paper-ink);
   border: 1px solid color-mix(in srgb, var(--dream-ink) 12%, transparent);
   cursor: grab;
+}
+
+.zine-studio__page-row.is-focused {
+  outline: 2px solid var(--dream-lilac-deep);
+  outline-offset: -1px;
 }
 
 .zine-studio__page-row--cover {
@@ -409,35 +466,175 @@
   position: sticky;
   top: 6rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.zine-studio__preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.zine-studio__segmented {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.zine-studio__tool--small {
+  font-size: 0.62rem;
+  padding: 0.35em 0.65em;
+}
+
+.zine-studio__zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__zoom button:not(.zine-studio__tool) {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--dream-ink) 35%, transparent);
+  background: none;
+  color: var(--dream-ink);
+  line-height: 1;
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+
+.zine-studio__zoom button:not(.zine-studio__tool):hover {
+  background: var(--dream-ink);
+  color: var(--dream-paper);
+}
+
+.zine-studio__zoom-value {
+  min-width: 2.6em;
+  text-align: center;
+}
+
+/* The frame is the only element allowed rounded corners and a mat — the
+   page inside it is the literal printed sheet, so it stays square-cornered
+   and is sized to the exact A5 ratio, fully visible by default (zoom is a
+   separate control layered on top, not the default state). */
+.zine-studio__preview-frame {
+  border-radius: 14px;
+  background: var(--dream-paper-ink);
+  padding: clamp(0.85rem, 3vw, 1.75rem);
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  max-height: 74vh;
 }
 
 .zine-studio__preview-page {
   position: relative;
+  width: 100%;
+  max-width: 300px;
   aspect-ratio: 148 / 210;
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
+  background: #f6f1e9; /* matches PAPER_TINT in server/pdf-export.mjs, shows through on "Fit" letterboxing */
   box-shadow: 0 30px 60px -30px rgba(36, 26, 38, 0.5);
+  transform-origin: center center;
+  transition: transform 160ms var(--ease-out);
+  flex: 0 0 auto;
 }
 
-.zine-studio__preview-page img {
+.zine-studio__page-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
 }
 
-.zine-studio__preview-caption {
+/* 74pt / 595.28pt page height — the exact ratio server/pdf-export.mjs
+   draws the caption scrim at, so the preview and the PDF agree. */
+.zine-studio__page-caption-band {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.6rem 0.75rem;
+  height: 12.43%;
   background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+}
+
+.zine-studio__page-caption-band p {
+  margin: 0;
+  padding: 0 7.15%; /* MARGIN / PAGE_W */
   color: #fff;
   font-family: var(--font-body);
   font-style: italic;
-  font-size: 0.8rem;
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+
+.zine-studio__page-textled-cap {
+  position: absolute;
+  top: 5.04%; /* MARGIN / PAGE_H */
+  left: 7.15%;
+  right: 7.15%;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dream-ink);
+}
+
+.zine-studio__page-textled-imgwrap {
+  position: absolute;
+  left: 7.15%;
+  right: 7.15%;
+  bottom: 5.04%;
+  height: 43.68%; /* 260pt cap / PAGE_H, matching the server's uniform-scale box */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.zine-studio__page-textled-imgwrap img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.zine-studio__crop-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.zine-studio__crop-controls label {
+  display: grid;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 130px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__crop-controls input[type="range"] {
+  max-width: 180px;
+  accent-color: var(--dream-lilac-deep);
+}
+
+.zine-studio__caption-hidden-note {
+  display: block;
+  font-style: italic;
+  opacity: 0.75;
+  font-size: 0.62rem;
+  margin-top: 0.15rem;
 }
 
 .zine-studio__caption-edit {
