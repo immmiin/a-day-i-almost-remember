@@ -76,6 +76,8 @@ export async function listRuns() {
       zineTitle: r.zine?.title ?? null,
       cover: r.zine?.cover ?? null,
       issueNumber: issueNumberOf(runs, r.id),
+      filledPageCount: (r.zine?.pages ?? []).filter(Boolean).length,
+      hasSpreadPdf: Boolean(r.zine?.spreadPdfUrl),
     };
   });
 }

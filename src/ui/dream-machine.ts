@@ -2,7 +2,7 @@ import type { Scene } from "../generation/types";
 import { DreamRunClient, fragmentsForGeneration, DEFAULT_SEED_TEXT } from "../generation/dream-run";
 import { STAGE_THEME, applyStageTheme } from "./dream-machine-theme";
 import { buildDreamNav } from "./dream-nav";
-import { escapeHtml } from "./util";
+import { escapeHtml, publicationCaption } from "./util";
 import { requestGeneration } from "./generation-client";
 import { createRun, saveScene, getRun, saveZinePages, absoluteUrl, type SavedScene, type ZinePageEntry } from "./dream-api";
 import { resolveCoverConfig } from "./zine-cover";
@@ -145,7 +145,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
 
     const remembered = fragScene.inherited.filter((f) => f.id !== fragScene.distorted?.fragmentId);
     const caption = savedScene
-      ? savedScene.prompt.split(".")[1]?.trim() || savedScene.prompt.split(".")[0]
+      ? publicationCaption(undefined, savedScene.prompt) || "This scene doesn't have a caption yet."
       : index === 0
         ? client.seedText
         : "Not yet generated.";

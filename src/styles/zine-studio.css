@@ -586,14 +586,15 @@
   display: block;
 }
 
-/* 74pt / 595.28pt page height — the exact ratio server/pdf-export.mjs
-   draws the caption scrim at, so the preview and the PDF agree. */
+/* Sized to its own text, not a fixed height guessed to fit a short line —
+   server/pdf-export.mjs's drawCaptionBand() does the same, so a long
+   caption grows the band instead of overflowing past it. Capped at 3
+   lines with an ellipsis here too, matching the PDF's wrapLines() cap. */
 .zine-studio__page-caption-band {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 12.43%;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -601,12 +602,16 @@
 
 .zine-studio__page-caption-band p {
   margin: 0;
-  padding: 0 7.15%; /* MARGIN / PAGE_W */
+  padding: 0.7em 7.15%; /* MARGIN / PAGE_W */
   color: #fff;
   font-family: var(--font-body);
   font-style: italic;
   font-size: 0.62rem;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .zine-studio__page-textled-cap {

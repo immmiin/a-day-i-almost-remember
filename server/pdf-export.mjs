@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, rectangle, clip, endPath, pushGraphicsState, popGraphicsState } from "pdf-lib";
 import { readFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,41 @@ const PDF_DIR = join(GENERATED_DIR, "zines");
 function shortCaption(prompt) {
   const parts = (prompt ?? "").split(".");
   return parts[1]?.trim() || parts[0]?.trim() || prompt || "";
+}
+
+// Phrases that only ever appear inside an internal generation prompt, never
+// in something a person would write as a caption. Earlier app versions
+// (and the derive-from-prompt fallback below) could let this kind of text
+// reach a printed page — this is a print-time filter, not a data edit, so
+// it never touches what's actually stored for a saved page.
+const GENERATION_TEXT_MARKERS = [
+  "one unmistakable impossible detail",
+  "a dreamcore photograph",
+  "nearby, among the ordinary objects",
+  "soft pastel colors, tactile",
+  "deep shadowed pastel tones",
+  "the impossible detail treated as completely ordinary",
+];
+
+function looksLikeGenerationText(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return GENERATION_TEXT_MARKERS.some((m) => lower.includes(m));
+}
+
+/**
+ * Mirrors src/ui/util.ts's publicationCaption(): a caption a person actually
+ * typed always wins, unless it's detectably internal generation text that
+ * reached the field from an earlier version of this app rather than being
+ * hand-written. Otherwise falls back to a short derived line from the
+ * prompt, itself rejected if it still reads as generation text. A blank
+ * result is fine and expected — nothing here invents a caption.
+ */
+function publicationCaption(entry, scene) {
+  const stored = (entry.caption ?? "").trim();
+  if (stored && !looksLikeGenerationText(stored)) return stored;
+  const derived = shortCaption(scene.prompt);
+  return looksLikeGenerationText(derived) ? "" : derived;
 }
 
 // A5 portrait in points (1pt = 1/72in; A5 = 148 x 210mm). A spread canvas is
@@ -32,6 +67,18 @@ function pxNeededFor(mmSize, dpi = MIN_PRINT_DPI) {
   return Math.round((mmSize / 25.4) * dpi);
 }
 const MIN_FULLBLEED_PX = { w: pxNeededFor(148), h: pxNeededFor(210) };
+
+// Explicit safety boundary, not just careful math: nothing drawn between
+// clipToPage()/unclip() can render outside this exact page's own
+// [xOffset, xOffset+PAGE_W] x [0, PAGE_H] rectangle, regardless of any
+// image size, wrapped-text length, or coordinate mistake below. Requested
+// directly — "use explicit page clipping as a safety boundary."
+function clipToPage(page, xOffset) {
+  page.pushOperators(pushGraphicsState(), rectangle(xOffset, 0, PAGE_W, PAGE_H), clip(), endPath());
+}
+function unclip(page) {
+  page.pushOperators(popGraphicsState());
+}
 
 // Emulates CSS `object-fit: cover` + `object-position: focalX% focalY%`,
 // drawn into a PAGE_W-wide slot starting at xOffset on whatever canvas the
@@ -67,8 +114,8 @@ async function embedSceneImage(doc, run, sceneIndex) {
 }
 
 // Greedy word-wrap capped at maxLines, with the last line ellipsized if
-// text remains — so a long issue title becomes a short, intentional two
-// lines instead of an automatic three-plus-line block.
+// text remains — so a long caption or title becomes a short, intentional
+// block instead of running past the space actually reserved for it.
 function wrapLines(font, text, size, maxWidth, maxLines) {
   const words = text.split(/\s+/).filter(Boolean);
   const lines = [];
@@ -99,97 +146,110 @@ function wrapLines(font, text, size, maxWidth, maxLines) {
   return lines;
 }
 
+const CAPTION_SIZE = 10;
+const CAPTION_LINE_H = 13;
+const CAPTION_PAD_Y = 13;
+const CAPTION_MAX_LINES = 3;
+
+/**
+ * Draws the bottom caption scrim sized to exactly the wrapped text it
+ * contains (capped at 3 lines, ellipsized beyond that) instead of a fixed
+ * height guessed to fit a short line — a long caption used to overflow the
+ * old fixed 74pt band and collide with the page number below it. Returns
+ * the band's actual height so the caller can keep the page number clear of
+ * it, or 0 if there's no caption to show (a blank caption prints nothing,
+ * not an empty scrim).
+ */
+function drawCaptionBand(page, xOffset, caption, font) {
+  if (!caption) return 0;
+  const lines = wrapLines(font, caption, CAPTION_SIZE, PAGE_W - MARGIN * 2, CAPTION_MAX_LINES);
+  const bandH = CAPTION_PAD_Y * 2 + lines.length * CAPTION_LINE_H;
+  page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: bandH, color: rgb(0, 0, 0), opacity: 0.5 });
+  let ty = bandH - CAPTION_PAD_Y - CAPTION_SIZE + 2;
+  for (const line of lines) {
+    page.drawText(line, { x: xOffset + MARGIN, y: ty, size: CAPTION_SIZE, font, color: rgb(1, 1, 1) });
+    ty -= CAPTION_LINE_H;
+  }
+  return bandH;
+}
+
 /**
  * Draws one content page's full logic — image fit/fill/crop, caption or
  * text-led layout, page number — onto `page` starting at `xOffset`. Used
  * identically by both the single-page export (xOffset always 0, one page
  * per canvas) and the spread export (xOffset 0 or PAGE_W, two pages per
  * canvas), so "image only" pages, crops, and margins can't drift apart
- * between the two formats.
+ * between the two formats. Every draw call here happens inside an explicit
+ * clip to this exact page's own bounds (see clipToPage/unclip) — a
+ * mistake in this function can make content missing, never make it bleed
+ * into the facing page.
  */
 async function drawContentPage(doc, page, xOffset, entry, run, fonts, pageNumber) {
   const { sans, sansItalic } = fonts;
-  if (!entry) {
-    page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(1, 1, 1) });
-    return null;
-  }
-  const scene = run.scenes.find((s) => s.index === entry.sceneIndex);
-  if (!scene) return null;
+  clipToPage(page, xOffset);
+  try {
+    if (!entry) {
+      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(1, 1, 1) });
+      return null;
+    }
+    const scene = run.scenes.find((s) => s.index === entry.sceneIndex);
+    if (!scene) return null;
 
-  const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
-  const bytes = await readFile(imgPath);
-  const img = await doc.embedPng(bytes);
+    const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
+    const bytes = await readFile(imgPath);
+    const img = await doc.embedPng(bytes);
 
-  let lowResWarning = null;
-  if (img.width < MIN_FULLBLEED_PX.w || img.height < MIN_FULLBLEED_PX.h) {
-    lowResWarning = `Page ${pageNumber}: source image is ${img.width}x${img.height}px, below the ~${MIN_FULLBLEED_PX.w}x${MIN_FULLBLEED_PX.h}px a true full-bleed A5 print wants at 300dpi.`;
-  }
+    let lowResWarning = null;
+    if (img.width < MIN_FULLBLEED_PX.w || img.height < MIN_FULLBLEED_PX.h) {
+      lowResWarning = `Page ${pageNumber}: source image is ${img.width}x${img.height}px, below the ~${MIN_FULLBLEED_PX.w}x${MIN_FULLBLEED_PX.h}px a true full-bleed A5 print wants at 300dpi.`;
+    }
 
-  // "Image only" means exactly that — no caption, no page number, no
-  // metadata of any kind gets drawn on this page. Checked first so nothing
-  // below can accidentally add text to it, in either export format.
-  const imageOnly = entry.layout === "full";
+    // "Image only" means exactly that — no caption, no page number, no
+    // metadata of any kind gets drawn on this page. Checked first so
+    // nothing below can accidentally add text to it, in either format.
+    const imageOnly = entry.layout === "full";
+    let bandH = 0;
 
-  if (entry.layout === "text-led") {
-    page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
-    const caption = entry.caption || shortCaption(scene.prompt);
-    page.drawText(caption, {
-      x: xOffset + MARGIN,
-      y: PAGE_H - 100,
-      size: 13,
-      font: sansItalic,
-      color: rgb(0.14, 0.1, 0.15),
-      maxWidth: PAGE_W - MARGIN * 2,
-      lineHeight: 18,
-    });
-    const imgW = PAGE_W - MARGIN * 2;
-    const imgH = imgW * (img.height / img.width);
-    page.drawImage(img, { x: xOffset + MARGIN, y: MARGIN, width: imgW, height: Math.min(imgH, 260) });
-  } else if (entry.imageMode === "fit") {
-    drawFitContainedAt(page, xOffset, img);
-    if (entry.layout === "image-caption") {
-      const caption = entry.caption || shortCaption(scene.prompt);
-      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
-      page.drawText(caption, {
-        x: xOffset + MARGIN,
-        y: 48,
-        size: 10,
-        lineHeight: 13,
-        font: sansItalic,
-        color: rgb(1, 1, 1),
-        maxWidth: PAGE_W - MARGIN * 2,
+    if (entry.layout === "text-led") {
+      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
+      const caption = publicationCaption(entry, scene);
+      if (caption) {
+        const lines = wrapLines(sansItalic, caption, 13, PAGE_W - MARGIN * 2, 3);
+        let ty = PAGE_H - 100;
+        for (const line of lines) {
+          page.drawText(line, { x: xOffset + MARGIN, y: ty, size: 13, font: sansItalic, color: rgb(0.14, 0.1, 0.15) });
+          ty -= 18;
+        }
+      }
+      const imgW = PAGE_W - MARGIN * 2;
+      const imgH = imgW * (img.height / img.width);
+      page.drawImage(img, { x: xOffset + MARGIN, y: MARGIN, width: imgW, height: Math.min(imgH, 260) });
+    } else {
+      if (entry.imageMode === "fit") {
+        drawFitContainedAt(page, xOffset, img);
+      } else {
+        const fx = typeof entry.focalX === "number" ? entry.focalX : 50;
+        const fy = typeof entry.focalY === "number" ? entry.focalY : 50;
+        drawFullBleedFocalAt(page, xOffset, img, fx, fy);
+      }
+      if (entry.layout === "image-caption") {
+        bandH = drawCaptionBand(page, xOffset, publicationCaption(entry, scene), sansItalic);
+      }
+    }
+
+    if (!imageOnly) {
+      page.drawText(String(pageNumber), {
+        x: xOffset + PAGE_W - MARGIN - 10,
+        y: bandH ? bandH + 10 : 12, // stays clear of the caption band, whatever height it ended up
+        size: 8,
+        font: sans,
+        color: rgb(0.4, 0.35, 0.37),
       });
     }
-  } else {
-    // full-bleed cover-crop: image fills the slot, caption (if any) overlays near the bottom
-    const fx = typeof entry.focalX === "number" ? entry.focalX : 50;
-    const fy = typeof entry.focalY === "number" ? entry.focalY : 50;
-    drawFullBleedFocalAt(page, xOffset, img, fx, fy);
-    if (entry.layout === "image-caption") {
-      const caption = entry.caption || shortCaption(scene.prompt);
-      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
-      page.drawText(caption, {
-        x: xOffset + MARGIN,
-        y: 48,
-        size: 10,
-        lineHeight: 13,
-        font: sansItalic,
-        color: rgb(1, 1, 1),
-        maxWidth: PAGE_W - MARGIN * 2,
-      });
-    }
+    return lowResWarning;
+  } finally {
+    unclip(page);
   }
-
-  if (!imageOnly) {
-    page.drawText(String(pageNumber), {
-      x: xOffset + PAGE_W - MARGIN - 10,
-      y: 12,
-      size: 8,
-      font: sans,
-      color: rgb(0.4, 0.35, 0.37),
-    });
-  }
-  return lowResWarning;
 }
 
 // The front and back covers share one typographic lockup (masthead +
@@ -202,85 +262,95 @@ async function drawContentPage(doc, page, xOffset, entry, run, fonts, pageNumber
 async function drawCoverFace(doc, run, issueNumber, fonts) {
   const { serifBold, serif, sans, sansItalic } = fonts;
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  const cover = run.zine?.cover ?? {};
-  const focalX = typeof cover.focalX === "number" ? cover.focalX : 50;
-  const focalY = typeof cover.focalY === "number" ? cover.focalY : 38;
-  const contrast = cover.contrast === "paper" ? "paper" : "ink";
-  const showText = cover.showText !== false;
-  const sceneIndex = cover.sceneIndex ?? run.zine?.pages?.find((p) => p)?.sceneIndex ?? run.scenes[0]?.index ?? null;
+  clipToPage(page, 0);
+  try {
+    const cover = run.zine?.cover ?? {};
+    const focalX = typeof cover.focalX === "number" ? cover.focalX : 50;
+    const focalY = typeof cover.focalY === "number" ? cover.focalY : 38;
+    const contrast = cover.contrast === "paper" ? "paper" : "ink";
+    const showText = cover.showText !== false;
+    const sceneIndex = cover.sceneIndex ?? run.zine?.pages?.find((p) => p)?.sceneIndex ?? run.scenes[0]?.index ?? null;
 
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
-  const img = await embedSceneImage(doc, run, sceneIndex);
-  if (img) drawFullBleedFocalAt(page, 0, img, focalX, focalY);
-  if (!showText) return;
+    page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
+    const img = await embedSceneImage(doc, run, sceneIndex);
+    if (img) drawFullBleedFocalAt(page, 0, img, focalX, focalY);
+    if (!showText) return;
 
-  const chipColor = contrast === "paper" ? rgb(0.945, 0.914, 0.863) : rgb(0.14, 0.1, 0.15);
-  const textColor = contrast === "paper" ? rgb(0.14, 0.1, 0.15) : rgb(0.96, 0.93, 0.87);
-  const mutedColor = contrast === "paper" ? rgb(0.35, 0.3, 0.32) : rgb(0.78, 0.74, 0.7);
-  const chipPad = 6;
-  const chip = (x, y, w, h) => page.drawRectangle({ x: x - chipPad, y: y - 4, width: w + chipPad * 2, height: h + 8, color: chipColor, opacity: 0.66 });
+    const chipColor = contrast === "paper" ? rgb(0.945, 0.914, 0.863) : rgb(0.14, 0.1, 0.15);
+    const textColor = contrast === "paper" ? rgb(0.14, 0.1, 0.15) : rgb(0.96, 0.93, 0.87);
+    const mutedColor = contrast === "paper" ? rgb(0.35, 0.3, 0.32) : rgb(0.78, 0.74, 0.7);
+    const chipPad = 6;
+    const chip = (x, y, w, h) => page.drawRectangle({ x: x - chipPad, y: y - 4, width: w + chipPad * 2, height: h + 8, color: chipColor, opacity: 0.66 });
 
-  const masthead = "A Day I Almost Remember";
-  const mastSize = 22;
-  const metaSize = 7.5;
-  const meta = `ISSUE ${issueNumber} · ${new Date(run.createdAt).toLocaleDateString()}`;
-  const mastW = Math.min(serifBold.widthOfTextAtSize(masthead, mastSize), PAGE_W - MARGIN * 2);
-  const metaW = sans.widthOfTextAtSize(meta, metaSize);
-  const mastTop = PAGE_H - MARGIN;
-  chip(MARGIN, mastTop - mastSize - metaSize - 14, Math.max(mastW, metaW), mastSize + metaSize + 10);
-  page.drawText(masthead, { x: MARGIN, y: mastTop - mastSize, size: mastSize, font: serifBold, color: textColor, maxWidth: PAGE_W - MARGIN * 2 });
-  page.drawText(meta, { x: MARGIN, y: mastTop - mastSize - metaSize - 8, size: metaSize, font: sans, color: mutedColor });
+    const masthead = "A Day I Almost Remember";
+    const mastSize = 22;
+    const metaSize = 7.5;
+    const meta = `ISSUE ${issueNumber} · ${new Date(run.createdAt).toLocaleDateString()}`;
+    const mastW = Math.min(serifBold.widthOfTextAtSize(masthead, mastSize), PAGE_W - MARGIN * 2);
+    const metaW = sans.widthOfTextAtSize(meta, metaSize);
+    const mastTop = PAGE_H - MARGIN;
+    chip(MARGIN, mastTop - mastSize - metaSize - 14, Math.max(mastW, metaW), mastSize + metaSize + 10);
+    page.drawText(masthead, { x: MARGIN, y: mastTop - mastSize, size: mastSize, font: serifBold, color: textColor, maxWidth: PAGE_W - MARGIN * 2 });
+    page.drawText(meta, { x: MARGIN, y: mastTop - mastSize - metaSize - 8, size: metaSize, font: sans, color: mutedColor });
 
-  const titleSize = 13.5;
-  const title = (cover.title || run.zine?.title || run.seedText || "Untitled issue").trim();
-  const titleLines = wrapLines(serif, title, titleSize, PAGE_W - MARGIN * 2 - chipPad * 2, 2);
-  const posterLine = (cover.posterLine || "").trim();
-  const lineH = titleSize + 5;
-  let blockH = titleLines.length * lineH;
-  if (posterLine) blockH += 13;
-  const blockW = Math.max(
-    ...titleLines.map((l) => serif.widthOfTextAtSize(l, titleSize)),
-    posterLine ? sansItalic.widthOfTextAtSize(posterLine, 9) : 0,
-  );
-  chip(MARGIN, MARGIN, Math.min(blockW, PAGE_W - MARGIN * 2 - chipPad * 2), blockH);
-  let ty = MARGIN + blockH - titleSize + 2;
-  for (const line of titleLines) {
-    page.drawText(line, { x: MARGIN, y: ty, size: titleSize, font: serif, color: textColor });
-    ty -= lineH;
-  }
-  if (posterLine) {
-    page.drawText(posterLine, { x: MARGIN, y: ty + 4, size: 9, font: sansItalic, color: mutedColor, maxWidth: PAGE_W - MARGIN * 2 });
+    const titleSize = 13.5;
+    const title = (cover.title || run.zine?.title || run.seedText || "Untitled issue").trim();
+    const titleLines = wrapLines(serif, title, titleSize, PAGE_W - MARGIN * 2 - chipPad * 2, 2);
+    const posterLine = (cover.posterLine || "").trim();
+    const lineH = titleSize + 5;
+    let blockH = titleLines.length * lineH;
+    if (posterLine) blockH += 13;
+    const blockW = Math.max(
+      ...titleLines.map((l) => serif.widthOfTextAtSize(l, titleSize)),
+      posterLine ? sansItalic.widthOfTextAtSize(posterLine, 9) : 0,
+    );
+    chip(MARGIN, MARGIN, Math.min(blockW, PAGE_W - MARGIN * 2 - chipPad * 2), blockH);
+    let ty = MARGIN + blockH - titleSize + 2;
+    for (const line of titleLines) {
+      page.drawText(line, { x: MARGIN, y: ty, size: titleSize, font: serif, color: textColor });
+      ty -= lineH;
+    }
+    if (posterLine) {
+      page.drawText(posterLine, { x: MARGIN, y: ty + 4, size: 9, font: sansItalic, color: mutedColor, maxWidth: PAGE_W - MARGIN * 2 });
+    }
+  } finally {
+    unclip(page);
   }
 }
 
 function drawBackCoverFace(doc, run, issueNumber, fonts, pages) {
   const { serifBold, sans } = fonts;
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
-  const backShowText = (run.zine?.cover?.backShowText ?? true) !== false;
-  if (backShowText) {
-    page.drawText("A Day I Almost Remember", {
-      x: MARGIN,
-      y: PAGE_H / 2 + 30,
-      size: 13,
-      font: serifBold,
-      color: rgb(0.96, 0.93, 0.87),
-    });
-    page.drawText(`issue ${issueNumber} · a procedural memory`, {
-      x: MARGIN,
-      y: PAGE_H / 2 + 8,
-      size: 8,
-      font: sans,
-      color: rgb(0.8, 0.76, 0.72),
-    });
-    page.drawText(`${run.scenes.length} scenes generated locally, ${pages.filter(Boolean).length} selected for this issue.`, {
-      x: MARGIN,
-      y: PAGE_H / 2 - 16,
-      size: 8,
-      font: sans,
-      color: rgb(0.8, 0.76, 0.72),
-      maxWidth: PAGE_W - MARGIN * 2,
-    });
+  clipToPage(page, 0);
+  try {
+    page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
+    const backShowText = (run.zine?.cover?.backShowText ?? true) !== false;
+    if (backShowText) {
+      page.drawText("A Day I Almost Remember", {
+        x: MARGIN,
+        y: PAGE_H / 2 + 30,
+        size: 13,
+        font: serifBold,
+        color: rgb(0.96, 0.93, 0.87),
+      });
+      page.drawText(`issue ${issueNumber} · a procedural memory`, {
+        x: MARGIN,
+        y: PAGE_H / 2 + 8,
+        size: 8,
+        font: sans,
+        color: rgb(0.8, 0.76, 0.72),
+      });
+      page.drawText(`${run.scenes.length} scenes generated locally, ${pages.filter(Boolean).length} selected for this issue.`, {
+        x: MARGIN,
+        y: PAGE_H / 2 - 16,
+        size: 8,
+        font: sans,
+        color: rgb(0.8, 0.76, 0.72),
+        maxWidth: PAGE_W - MARGIN * 2,
+      });
+    }
+  } finally {
+    unclip(page);
   }
 }
 

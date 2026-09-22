@@ -13,6 +13,8 @@ export interface RunSummary {
   zineTitle: string | null;
   cover: Partial<CoverConfig> | null;
   issueNumber: number;
+  filledPageCount: number;
+  hasSpreadPdf: boolean;
 }
 
 export interface SavedScene {

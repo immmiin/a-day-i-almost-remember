@@ -1,5 +1,5 @@
 import { buildDreamNav } from "./dream-nav";
-import { escapeHtml, shortCaption } from "./util";
+import { escapeHtml, publicationCaption } from "./util";
 import { getRun, saveZinePages, exportPdf, exportSpreadPdf, absoluteUrl, type RunDetail, type ZinePageEntry, type SavedScene } from "./dream-api";
 import { renderCoverFace, resolveCoverConfig, type CoverConfig } from "./zine-cover";
 
@@ -105,7 +105,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     const mode = entry.imageMode === "fit" ? "fit" : "fill";
     const fx = entry.focalX ?? 50;
     const fy = entry.focalY ?? 50;
-    const captionText = entry.caption ?? shortCaption(scene.prompt);
+    const captionText = publicationCaption(entry.caption, scene.prompt);
     const imgUrl = absoluteUrl(scene.imageUrl);
     if (entry.layout === "text-led") {
       return `
@@ -115,7 +115,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     return `
       <img class="zine-studio__page-img" src="${imgUrl}" alt=""
         style="object-fit:${mode === "fit" ? "contain" : "cover"};object-position:${fx}% ${fy}%;" />
-      ${entry.layout === "image-caption" ? `<div class="zine-studio__page-caption-band"><p>${escapeHtml(captionText)}</p></div>` : ""}`;
+      ${entry.layout === "image-caption" && captionText ? `<div class="zine-studio__page-caption-band"><p>${escapeHtml(captionText)}</p></div>` : ""}`;
   }
 
   function previewModeToggle(): string {
@@ -138,7 +138,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     const mode = focused.imageMode === "fit" ? "fit" : "fill";
     const isTextLed = focused.layout === "text-led";
     const isImageOnly = focused.layout === "full";
-    const captionText = focused.caption ?? shortCaption(focusedScene.prompt);
+    const captionText = publicationCaption(focused.caption, focusedScene.prompt);
     const fx = focused.focalX ?? 50;
     const fy = focused.focalY ?? 50;
 
