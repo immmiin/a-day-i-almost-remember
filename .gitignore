@@ -7,3 +7,4 @@ dist
 .impeccable/hook.cache.json
 .playwright-mcp/
 tsconfig.tsbuildinfo
+server/generated/
