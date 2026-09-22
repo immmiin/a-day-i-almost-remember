@@ -1,0 +1,76 @@
+.dream-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  padding: 0.3em 0.6em;
+  background: rgba(20, 14, 22, 0.72);
+  color: var(--dream-paper);
+  border-radius: 999px;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.dream-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem clamp(1.25rem, 3vw, 2.25rem);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  background: rgba(20, 14, 22, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dream-nav__brand {
+  text-decoration: none;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.dream-nav__links {
+  display: flex;
+  gap: 1.1rem;
+}
+
+.dream-nav__links a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  opacity: 0.65;
+  transition: opacity 140ms var(--ease-out);
+}
+
+.dream-nav__links a:hover,
+.dream-nav__links a.is-active {
+  opacity: 1;
+  text-decoration-color: currentColor;
+}
+
+.dream-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 50;
+  background: var(--dream-ink);
+  color: var(--dream-paper);
+  padding: 0.6em 1em;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.dream-skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}

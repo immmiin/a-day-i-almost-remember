@@ -1,0 +1,239 @@
+.zine-studio {
+  min-height: 100dvh;
+  background: var(--dream-paper);
+  color: var(--dream-ink);
+  padding: 6rem clamp(1.25rem, 4vw, 3rem) 3rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.zine-studio__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--dream-ink) 18%, transparent);
+  padding-bottom: 1.25rem;
+}
+
+.zine-studio__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  margin: 0;
+}
+
+.zine-studio__issue-name {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--dream-ink-soft);
+  border: none;
+  background: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--dream-ink) 35%, transparent);
+  padding: 0.1em 0;
+  width: 22rem;
+  max-width: 80vw;
+}
+
+.zine-studio__meta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__pages {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.zine-studio__page-thumb {
+  flex: 0 0 auto;
+  width: 46px;
+  aspect-ratio: 148 / 210;
+  border-radius: 3px;
+  border: 1px dashed color-mix(in srgb, var(--dream-ink) 35%, transparent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dream-ink-soft);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--dream-paper) 60%, white 10%);
+}
+
+.zine-studio__page-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zine-studio__page-thumb[data-current="true"] {
+  border: 2px solid var(--dream-ink);
+  outline: 2px solid color-mix(in srgb, var(--dream-lilac-deep) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.zine-studio__page-thumb[data-cover="true"] {
+  border-style: solid;
+  border-color: var(--dream-ink);
+}
+
+.zine-studio__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.zine-studio__tool {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.5em 0.9em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--dream-ink) 40%, transparent);
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+
+.zine-studio__tool:hover {
+  background: var(--dream-ink);
+  color: var(--dream-paper);
+}
+
+.zine-studio__spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  background: color-mix(in srgb, var(--dream-ink) 60%, transparent);
+  max-width: 980px;
+  margin: 0 auto;
+  box-shadow: 0 40px 80px -40px rgba(36, 26, 38, 0.45);
+}
+
+.zine-studio__page {
+  background: var(--dream-paper-ink);
+  aspect-ratio: 148 / 210;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.zine-studio__page-number {
+  position: absolute;
+  bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dream-ink-soft);
+  z-index: 2;
+}
+
+.zine-studio__page--left .zine-studio__page-number {
+  left: 0.7rem;
+}
+
+.zine-studio__page--right .zine-studio__page-number {
+  right: 0.7rem;
+}
+
+.zine-studio__page--left {
+  position: relative;
+}
+
+.zine-studio__page--left img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zine-studio__page-caption-overlay {
+  position: absolute;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 1.6rem;
+  z-index: 2;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+.zine-studio__page--right {
+  padding: 2.4rem 1.6rem 1.6rem;
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+}
+
+.zine-studio__page-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--dream-ink-soft);
+  text-transform: uppercase;
+}
+
+.zine-studio__page-heading {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.zine-studio__page-body {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--dream-ink-soft);
+  margin: 0;
+}
+
+.zine-studio__page-detail {
+  margin-top: auto;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.zine-studio__page-detail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zine-studio__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__export {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0.7em 1.3em;
+  border-radius: 999px;
+  border: 1px solid var(--dream-ink);
+  background: var(--dream-paper);
+  color: var(--dream-ink);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .zine-studio__spread {
+    grid-template-columns: 1fr;
+  }
+}

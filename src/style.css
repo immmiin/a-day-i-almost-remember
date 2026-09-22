@@ -1,5 +1,11 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
+@import "./styles/dream-shared.css";
+@import "./styles/dream-files.css";
+@import "./styles/dream-machine.css";
+@import "./styles/zine-studio.css";
+
+/* legacy screens (unrouted for now, kept for the future Drafts area) */
 @import "./styles/entry.css";
 @import "./styles/generation.css";
 @import "./styles/archive.css";

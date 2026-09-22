@@ -60,6 +60,27 @@
   --accent-forget: #453f36;
   --accent-distort: #7a2626;
 
+  /* dream palette: the image-led redesign's own register, independent of
+     the legacy entry-/archive-/accent- tokens above (still used by the
+     unrouted legacy screens under Drafts) */
+  --dream-paper: #f1e9db;
+  --dream-ink: #241a26;
+  --dream-ink-soft: #5c4a5e;
+  --dream-lilac: #c3aed6;
+  --dream-lilac-deep: #6d5087;
+  --dream-pink: #dba7ac;
+  --dream-pink-deep: #8a4a53;
+  --dream-blue: #a7c3d6;
+  --dream-blue-deep: #396079;
+  --dream-mint: #a9c9b6;
+  --dream-mint-deep: #45704f;
+  --dream-butter: #e7cd83;
+  --dream-butter-deep: #7a5f1a;
+  --dream-forest: #223226;
+  --dream-plum: #331c34;
+  --dream-teal: #294f4f;
+  --dream-paper-ink: #f4ecdf;
+
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 

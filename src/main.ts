@@ -1,7 +1,8 @@
 import "./style.css";
-import { renderEntry } from "./ui/entry";
-import { renderGeneration } from "./ui/generation-view";
-import { renderArchive } from "./ui/archive-view";
+import { renderDreamFiles } from "./ui/dream-files";
+import { renderDreamMachine } from "./ui/dream-machine";
+import { renderZineSpread } from "./ui/zine-spread";
+import { renderDreamArchivePlaceholder } from "./ui/dream-archive-placeholder";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -15,12 +16,14 @@ function route(): void {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const path = hash.split("?")[0];
 
-  if (path === "archive") {
-    cleanup = renderArchive(app);
-  } else if (path === "generate") {
-    cleanup = renderGeneration(app);
+  if (path === "machine") {
+    cleanup = renderDreamMachine(app);
+  } else if (path === "zine") {
+    cleanup = renderZineSpread(app);
+  } else if (path === "archive") {
+    cleanup = renderDreamArchivePlaceholder(app);
   } else {
-    renderEntry(app);
+    cleanup = renderDreamFiles(app);
   }
 }
 
