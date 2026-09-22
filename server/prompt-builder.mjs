@@ -6,91 +6,86 @@
  * history could arrive — the restriction lives in the type, not in a
  * promise to behave.
  *
- * Separately: every prompt is built to guarantee the dreamcore register
- * (ordinary setting + one impossible transformation + tactile pastel
- * materials + deadpan photographic staging) rather than hoping the model
- * gets there — required clauses are asserted, not merely suggested, and
- * validated against the finished string before it's sent.
+ * Diagnosis (from inspecting real submitted prompts, not guessing): the
+ * "ordinary building facade" failures traced back to two things, neither of
+ * which was a missing adjective —
+ *
+ * 1. Roughly half the time the "impossible detail" fed to the model was an
+ *    abstract, non-visual sentence (a distortion on the `role` or `meaning`
+ *    axis, e.g. "its role used to be object, now it is person" — not a
+ *    picture of anything). Fixed upstream in src/generation/dream-run.ts:
+ *    those two axes no longer produce a distortionNote at all.
+ * 2. The previous ~150-word style paragraph, even placed after the subject,
+ *    still diluted a short concrete instruction across many more style
+ *    tokens than content tokens. The style suffix below is deliberately
+ *    short (~30 words) so the concrete contradiction — which is now always
+ *    a full, self-contained, camera-ready scenario — carries the prompt.
  */
 
-const ART_DIRECTION =
-  "photographic surrealism, dreamcore: an ordinary familiar setting containing " +
-  "one large, unmistakably impossible transformation, staged with handmade " +
-  "tactile pastel materials — cotton, vinyl, lace, wallpaper, floral fabric, " +
-  "painted wood, glass, soft foam — like a theatrical installation, photographed " +
-  "quietly and deadpan as a believable 35mm or medium-format snapshot. Faded " +
-  "pastel palette: powder blue, dusty pink, pale lilac, mint green, butter " +
-  "yellow, cloudy white, muted grass green. Gentle flash or hazy daylight, " +
-  "washed highlights, soft shadows, subtle film grain, slight chromatic " +
-  "aberration, nostalgic low-resolution snapshot quality. The impossible event " +
-  "is treated as unremarkable, everyday reality — awkward, quiet, deadpan.";
+const STYLE_SUFFIX =
+  "Soft pastel colors, tactile handmade materials like cotton, vinyl, lace and painted wood, gentle flash lighting, subtle film grain, a believable 35mm snapshot, quiet deadpan mood, the impossible detail treated as completely ordinary.";
 
 const NEGATIVE_PROMPT =
-  "normal ordinary photograph, plain portrait, generic lifestyle photography, " +
-  "stock photography, polished commercial fashion photography, ordinary " +
-  "cinematic scenery, dark horror, cyberpunk, high-contrast sci-fi, " +
-  "illustration, cartoon, 3d render, cgi, painting, watercolor, anime, text, " +
-  "watermark, logo, blurry, low quality";
+  "normal ordinary photograph with nothing unusual, plain portrait, generic lifestyle photography, stock photography, dark horror, cyberpunk, high-contrast sci-fi, illustration, cartoon, 3d render, cgi, painting, watercolor, anime, text, watermark, logo, blurry, low quality";
 
-// A scene's own distortion note already names its one impossible change; a
-// fresh scene (typically scene 0, nothing inherited yet) has none, so it
-// needs one injected here instead — chosen deterministically from the seed
-// text so the same seed always proposes the same anomaly.
-const FALLBACK_ANOMALIES = [
-  "the ceiling has quietly become a shallow indoor sky, with small cotton clouds drifting between the light fixtures",
-  "a house-sized creature of woven pastel yarn is calmly sitting where the furniture should be",
-  "the room is filling, ankle-deep, with pale blue water that no one reacts to",
-  "an ordinary object nearby has become vastly oversized, handmade from soft foam and felt",
-  "a wall has been quietly replaced by a floral meadow, indoors, at true scale",
-  "a flock of small paper birds is circling the room in a slow, unbroken loop",
-  "the light fixtures have become clusters of oversized cloudy-white balloons that glow faintly",
-  "an everyday object on the table is alive, breathing gently, and no one finds it strange",
+/**
+ * Each entry is a complete, self-contained visual scenario, not a mood
+ * word: a named ordinary object, one concrete change to its scale,
+ * material, function, gravity, or location, the everyday objects around it
+ * that make the change legible, and an explicit framing clause so the
+ * relationship between the ordinary and the impossible is actually visible
+ * in the shot. Deliberately varied subjects — kitchen, bath, stairs,
+ * dining, laundry, porch, garden, living room — so a run doesn't keep
+ * landing on the same window/room/cloud by default.
+ */
+const CONCRETE_CONTRADICTIONS = [
+  "A giant porcelain teacup protrudes through a normal-sized kitchen window, its handle taller than the door beside it, the whole cup, window, and door visible in one wide photograph.",
+  "A claw-foot bathtub, still half full of water, hangs flush against the living room wall at the same height as the family photographs beside it, a reading lamp lit on the side table below.",
+  "An ordinary carpeted staircase climbs three normal steps, then turns and continues sideways across the ceiling instead of up, a pair of shoes left neatly at the bottom as if nothing about it is strange.",
+  "A wooden dining table stands on three ordinary legs and one tall lit candle instead of a fourth, wax pooling steadily onto the rug below while the table setting on top stays perfectly level.",
+  "An ordinary kitchen refrigerator stands closed on the outside, but its open door reveals a narrow garden path lined with flowerpots instead of shelves, the kitchen tile floor visible on both sides of the doorway.",
+  "A bicycle leans against the porch wall exactly where it's always kept, its two wheels replaced by full dinner plates complete with a fork and knife still resting on the rims.",
+  "A clothesline strung across the backyard holds a row of ordinary wall clocks pinned up by their cords instead of laundry, each one still ticking, the wooden clothespins clearly visible.",
+  "A bathroom mirror above the sink reflects a completely different, more cluttered room than the tidy one it's mounted in, the sink faucet and toothbrush cup identical in both, the mismatch plainly visible in the frame.",
+  "A garden hose lies coiled on the front lawn exactly as it was left, a fine stream of white flour pouring steadily from its nozzle instead of water, dusting the grass beneath it.",
+  "An upholstered armchair sits in the living room with its legs sunk a few inches into the hardwood floor as though the wood had briefly gone soft beneath it, the surrounding floorboards otherwise flat and undisturbed.",
 ];
 
-function pickAnomaly(seedText) {
+function pickContradiction(key) {
   let hash = 0;
-  for (const ch of seedText) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return FALLBACK_ANOMALIES[hash % FALLBACK_ANOMALIES.length];
+  for (const ch of String(key)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return CONCRETE_CONTRADICTIONS[hash % CONCRETE_CONTRADICTIONS.length];
 }
 
-const REQUIRED_CONCEPTS = ["photographic surrealism", "dreamcore", "impossible"];
+/**
+ * @param {object} input
+ * @param {string} input.timeOfDay
+ * @param {string} [input.seedText] only meaningful for the opening scene
+ * @param {string[]} input.rememberedFragments
+ * @param {string} [input.distortionNote] already a concrete, camera-ready
+ *   sentence when present (material/scale distortions only — see
+ *   src/generation/dream-run.ts) — never an abstract one to render as-is
+ * @param {number} [input.sceneIndex] cycles which stock contradiction a
+ *   scene without its own distortionNote gets, so consecutive scenes in one
+ *   run don't repeat the same subject
+ */
+export function buildPrompt({ timeOfDay, seedText, rememberedFragments, distortionNote, sceneIndex }) {
+  // The concrete visual event always leads and is always a complete,
+  // self-contained scenario — never a short "anomaly" tacked onto a
+  // separately-described ordinary scene, which is what let the model
+  // ignore it and fall back to rendering only the ordinary part.
+  const contradiction = distortionNote || pickContradiction(`${seedText ?? "day"}-${sceneIndex ?? 0}`);
 
-function assertRequiredConcepts(prompt) {
-  const lower = prompt.toLowerCase();
-  const missing = REQUIRED_CONCEPTS.filter((c) => !lower.includes(c));
-  if (missing.length === 0) return prompt;
-  // Shouldn't happen since ART_DIRECTION always carries all three — this is
-  // a safety net if that constant is ever edited to drop one, not a normal
-  // code path. Re-append whatever's missing rather than silently shipping
-  // a prompt that lost the guarantee.
-  return `${prompt} ${missing.join(", ")}.`;
-}
+  // The fragments this scene actually remembered are folded in as the
+  // ordinary surrounding objects, not as the subject — this is where the
+  // run's own continuity still shows up in the image without competing
+  // with the one clearly readable contradiction.
+  const contextClause =
+    rememberedFragments && rememberedFragments.length
+      ? ` Nearby, among the ordinary objects in the room: ${rememberedFragments.join(", ")}.`
+      : "";
 
-export function buildPrompt({ timeOfDay, seedText, rememberedFragments, distortionNote }) {
-  const sceneNoun = rememberedFragments.length
-    ? rememberedFragments.join(", ")
-    : seedText || "an ordinary morning at home";
-
-  // Every scene gets one concrete impossible detail — the fragment engine's
-  // own distortion only fires probabilistically (and never on the opening
-  // scene, which has nothing to distort yet), so a scene it skipped this
-  // round still needs an anomaly injected here rather than falling back to
-  // a vague, non-visual placeholder that would just render as an ordinary
-  // photo with nothing impossible in it.
-  const anomaly = distortionNote || pickAnomaly(seedText ?? sceneNoun);
-
-  // Concrete subject + anomaly lead the prompt; style/palette direction
-  // follows. FLUX's text encoders weight earlier tokens more heavily on
-  // long prompts — a stylistic paragraph placed first was observed (in
-  // testing) to pull results toward generic pastel portraiture and lose
-  // the actual scene content, so the specific, concrete clause goes first
-  // and the shared register comes after it, not instead of it.
-  const subjectClause =
-    `A dreamcore photograph, ${timeOfDay}: ${sceneNoun}. ` +
-    `One unmistakable impossible detail: ${anomaly}. ` +
-    `The person in the scene treats it as completely ordinary, no surprise or alarm.`;
-
-  const prompt = assertRequiredConcepts(`${subjectClause} ${ART_DIRECTION}`);
+  const prompt = `A dreamcore photograph, ${timeOfDay}. ${contradiction}${contextClause} ${STYLE_SUFFIX}`;
 
   return { prompt, negativePrompt: NEGATIVE_PROMPT };
 }

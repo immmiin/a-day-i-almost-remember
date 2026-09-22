@@ -411,6 +411,39 @@
   border-style: dashed;
 }
 
+.zine-studio__page-row--empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border-style: dashed;
+}
+
+.zine-studio__page-empty-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-style: italic;
+  color: var(--dream-ink-soft);
+  opacity: 0.75;
+}
+
+.zine-studio__page-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.zine-studio__slot-chooser {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed color-mix(in srgb, var(--dream-ink) 20%, transparent);
+}
+
 .zine-studio__page-num {
   font-family: var(--font-mono);
   font-size: 0.68rem;

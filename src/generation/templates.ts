@@ -37,6 +37,26 @@ const TIME_OPENERS: Record<TimeOfDay, string[]> = {
     "By now the day is nearly done with me.",
     "It's late, and the day is finally letting go.",
   ],
+  "late-night": [
+    "The day should have ended by now, but it hasn't quite.",
+    "It's later than I meant it to be.",
+    "I'm still up, for no reason I could explain.",
+  ],
+  midnight: [
+    "It's midnight, the exact hinge between one day and the next.",
+    "The date changes without anyone noticing but me.",
+    "The house is asleep. I'm not, yet.",
+  ],
+  "pre-dawn": [
+    "It's too early to call it morning and too late to call it night.",
+    "The sky hasn't decided what it's doing yet.",
+    "The dark is thinning, a little, at the edges.",
+  ],
+  "next-morning": [
+    "The day starts again, the way it does.",
+    "Somehow it's morning again already.",
+    "The same light comes back, as if nothing happened in between.",
+  ],
 };
 
 const CARRY_TEMPLATES: Array<(f: Fragment) => string> = [

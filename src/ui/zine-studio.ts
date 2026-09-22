@@ -18,9 +18,14 @@ export function renderZineStudio(root: HTMLElement): () => void {
 
   let run: RunDetail | null = null;
   let title = "A Day I Almost Remember";
-  let pages: ZinePageEntry[] = [];
+  // A fixed-length grid of 14 interior slots, not a compact list — a `null`
+  // slot is an empty page that stays right where it is (removing an image
+  // clears its slot instead of shifting every later page up), which is
+  // also what makes "N empty pages remaining" an honest, stable count.
+  let pages: (ZinePageEntry | null)[] = [];
   let cover: CoverConfig = resolveCoverConfig(null);
   let focusIndex = 0;
+  let chooserSlot: number | null = null;
   let dragFrom: number | null = null;
   let exportResult: { pdfUrl: string; lowResWarnings: string[] } | null = null;
   let exporting = false;
@@ -75,10 +80,11 @@ export function renderZineStudio(root: HTMLElement): () => void {
       return;
     }
     title = run.zine?.title || run.seedText || "A Day I Almost Remember";
-    pages = run.zine?.pages ?? run.scenes.slice(0, CONTENT_SLOTS).map((s) => ({ sceneIndex: s.index, layout: "full" as const }));
+    const existing = run.zine?.pages ?? run.scenes.slice(0, CONTENT_SLOTS).map((s) => ({ sceneIndex: s.index, layout: "full" as const }));
+    pages = Array.from({ length: CONTENT_SLOTS }, (_, i) => existing[i] ?? null);
     cover = resolveCoverConfig(run.zine?.cover);
     if (cover.sceneIndex == null) {
-      cover = { ...cover, sceneIndex: pages[0]?.sceneIndex ?? run.scenes[0]?.index ?? null };
+      cover = { ...cover, sceneIndex: pages.find((p) => p)?.sceneIndex ?? run.scenes[0]?.index ?? null };
     }
     render();
   }
@@ -153,6 +159,8 @@ export function renderZineStudio(root: HTMLElement): () => void {
     const focusedScene = focused ? sceneFor(focused.sceneIndex) : null;
     const coverScene = cover.sceneIndex != null ? sceneFor(cover.sceneIndex) : null;
     const lowResCount = run.scenes.filter((s) => s.settings && (s.settings.width < 1748 || s.settings.height < 2480)).length;
+    const filledCount = pages.filter((p) => p).length;
+    const emptyCount = CONTENT_SLOTS - filledCount;
 
     section.innerHTML = `
       <header class="zine-studio__header">
@@ -164,7 +172,10 @@ export function renderZineStudio(root: HTMLElement): () => void {
       </header>
 
       <section class="zine-studio__pool">
-        <h2 class="zine-studio__pool-title">Generated scenes — click to add a page</h2>
+        <div class="zine-studio__pages-header">
+          <h2 class="zine-studio__pool-title" style="margin:0;">Image collection — every scene generated for this run, click to fill the next empty page</h2>
+          <a class="zine-studio__tool zine-studio__tool--small" href="#/machine?resume=${encodeURIComponent(run.id)}">Generate another image →</a>
+        </div>
         <div class="zine-studio__pool-strip">
           ${run.scenes
             .map(
@@ -253,13 +264,38 @@ export function renderZineStudio(root: HTMLElement): () => void {
       <section class="zine-studio__editor">
         <div class="zine-studio__pages-col">
           <div class="zine-studio__pages-header">
-            <span class="zine-studio__pool-title" style="margin:0;">Interior pages</span>
-            <button type="button" class="zine-studio__tool zine-studio__tool--small" id="all-image-only" ${pages.length === 0 ? "disabled" : ""}>Set all interior pages to Image only</button>
+            <span class="zine-studio__pool-title" style="margin:0;">Interior pages · ${emptyCount} empty page${emptyCount === 1 ? "" : "s"} remaining</span>
+            <button type="button" class="zine-studio__tool zine-studio__tool--small" id="all-image-only" ${filledCount === 0 ? "disabled" : ""}>Set all interior pages to Image only</button>
           </div>
           <div class="zine-studio__pages-list" id="pages-list" aria-label="Zine pages, drag to reorder">
             <div class="zine-studio__page-row zine-studio__page-row--cover">1 · front cover (auto)</div>
             ${pages
               .map((p, i) => {
+                if (!p) {
+                  return `
+                  <div class="zine-studio__page-row zine-studio__page-row--empty" draggable="true" data-page-index="${i}">
+                    <span class="zine-studio__page-num">${i + 2}</span>
+                    <span class="zine-studio__page-empty-label">empty page</span>
+                    <div class="zine-studio__page-empty-actions">
+                      <button type="button" class="zine-studio__tool zine-studio__tool--small" data-choose-slot="${i}">Choose existing image</button>
+                      <button type="button" class="zine-studio__tool zine-studio__tool--small" data-generate-slot="${i}">Generate a new image for this page →</button>
+                    </div>
+                    ${
+                      chooserSlot === i
+                        ? `<div class="zine-studio__slot-chooser">
+                            ${run!.scenes
+                              .map(
+                                (s) => `
+                              <button type="button" class="zine-studio__pool-item" data-fill-slot="${i}" data-fill-scene="${s.index}" title="Scene ${s.index + 1}">
+                                <img src="${absoluteUrl(s.imageUrl)}" alt="" />
+                              </button>`,
+                              )
+                              .join("")}
+                          </div>`
+                        : ""
+                    }
+                  </div>`;
+                }
                 const s = sceneFor(p.sceneIndex);
                 return `
                 <div class="zine-studio__page-row${i === focusIndex ? " is-focused" : ""}" draggable="true" data-page-index="${i}" data-focus="${i}">
@@ -271,11 +307,10 @@ export function renderZineStudio(root: HTMLElement): () => void {
                     <option value="image-caption" ${p.layout === "image-caption" ? "selected" : ""}>image + caption</option>
                     <option value="text-led" ${p.layout === "text-led" ? "selected" : ""}>text-led</option>
                   </select>
-                  <button type="button" class="zine-studio__page-remove" data-remove-index="${i}" aria-label="Remove page ${i + 2}">×</button>
+                  <button type="button" class="zine-studio__page-remove" data-remove-index="${i}" aria-label="Clear page ${i + 2}">×</button>
                 </div>`;
               })
               .join("")}
-            ${pages.length >= CONTENT_SLOTS ? "" : `<p class="zine-studio__hint">${CONTENT_SLOTS - pages.length} page${CONTENT_SLOTS - pages.length === 1 ? "" : "s"} free — add scenes above.</p>`}
             <div class="zine-studio__page-row zine-studio__page-row--cover">16 · back cover (auto)</div>
           </div>
         </div>
@@ -298,9 +333,8 @@ export function renderZineStudio(root: HTMLElement): () => void {
           ${lowResCount ? `<p class="zine-studio__warning">${lowResCount} scene${lowResCount === 1 ? "" : "s"} below 300dpi print resolution at A5 — they'll still export, flagged in the result.</p>` : ""}
         </div>
         <div class="zine-studio__footer-actions">
-          <a class="zine-studio__tool" href="#/machine?resume=${encodeURIComponent(run.id)}">Generate another scene →</a>
           <button type="button" class="zine-studio__tool" id="save-draft">Save draft</button>
-          <button type="button" class="zine-studio__export" id="export-pdf" ${pages.length === 0 || exporting ? "disabled" : ""}>
+          <button type="button" class="zine-studio__export" id="export-pdf" ${filledCount === 0 || exporting ? "disabled" : ""}>
             ${exporting ? "Exporting…" : "Export PDF"}
           </button>
         </div>
@@ -332,34 +366,70 @@ export function renderZineStudio(root: HTMLElement): () => void {
 
     section.querySelectorAll<HTMLButtonElement>("[data-add-scene]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        if (pages.length >= CONTENT_SLOTS) return;
         const sceneIndex = Number(btn.dataset.addScene);
-        pages.push({ sceneIndex, layout: "full" });
-        focusIndex = pages.length - 1;
+        const firstEmpty = pages.findIndex((p) => !p);
+        if (firstEmpty === -1) return; // all 14 pages occupied — clear one first, or use its own "choose existing image"
+        pages[firstEmpty] = { sceneIndex, layout: "full" };
+        focusIndex = firstEmpty;
         zoom = 1;
         render();
       });
     });
 
     section.querySelector<HTMLButtonElement>("#all-image-only")?.addEventListener("click", () => {
-      pages = pages.map((p) => ({ ...p, layout: "full" }));
+      pages = pages.map((p) => (p ? { ...p, layout: "full" } : p));
       render();
     });
 
     section.querySelectorAll<HTMLSelectElement>("[data-layout-index]").forEach((sel) => {
       sel.addEventListener("change", () => {
         const i = Number(sel.dataset.layoutIndex);
-        pages[i] = { ...pages[i], layout: sel.value as ZinePageEntry["layout"] };
+        const p = pages[i];
+        if (p) pages[i] = { ...p, layout: sel.value as ZinePageEntry["layout"] };
         render();
       });
     });
 
     section.querySelectorAll<HTMLButtonElement>("[data-remove-index]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        // Clears this page's slot — the scene stays in the image collection
+        // untouched, ready to be placed again or used elsewhere.
         const i = Number(btn.dataset.removeIndex);
-        pages.splice(i, 1);
-        focusIndex = Math.min(focusIndex, pages.length - 1);
+        pages[i] = null;
+        if (focusIndex === i) focusIndex = pages.findIndex((p) => p);
         render();
+      });
+    });
+
+    section.querySelectorAll<HTMLButtonElement>("[data-choose-slot]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.dataset.chooseSlot);
+        chooserSlot = chooserSlot === i ? null : i;
+        render();
+      });
+    });
+
+    section.querySelectorAll<HTMLButtonElement>("[data-fill-slot]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const slot = Number(btn.dataset.fillSlot);
+        const sceneIndex = Number(btn.dataset.fillScene);
+        pages[slot] = { sceneIndex, layout: "full" };
+        chooserSlot = null;
+        focusIndex = slot;
+        zoom = 1;
+        render();
+      });
+    });
+
+    section.querySelectorAll<HTMLButtonElement>("[data-generate-slot]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const slot = Number(btn.dataset.generateSlot);
+        // Persist the in-progress edit (title/pages/cover) before leaving —
+        // Dream Machine will re-fetch this run to insert the new scene into
+        // this exact slot, so whatever isn't saved here would otherwise be
+        // silently overwritten or lost.
+        await saveZinePages(run!.id, title, pages, cover);
+        window.location.hash = `#/machine?resume=${encodeURIComponent(run!.id)}&targetPage=${slot}`;
       });
     });
 
@@ -370,6 +440,9 @@ export function renderZineStudio(root: HTMLElement): () => void {
         zoom = 1;
         render();
       });
+    });
+
+    section.querySelectorAll<HTMLElement>("[data-page-index]").forEach((row) => {
       row.addEventListener("dragstart", () => {
         dragFrom = Number(row.dataset.pageIndex);
       });
@@ -378,8 +451,10 @@ export function renderZineStudio(root: HTMLElement): () => void {
         e.preventDefault();
         const to = Number(row.dataset.pageIndex);
         if (dragFrom === null || dragFrom === to) return;
-        const [moved] = pages.splice(dragFrom, 1);
-        pages.splice(to, 0, moved);
+        // Swap in place — a fixed 14-slot grid reorders by trading two
+        // slots' contents, not by splicing (which would shift every page
+        // between them and silently move images the user didn't touch).
+        [pages[dragFrom], pages[to]] = [pages[to], pages[dragFrom]];
         focusIndex = to;
         dragFrom = null;
         render();
@@ -434,12 +509,14 @@ export function renderZineStudio(root: HTMLElement): () => void {
 
     const captionEl = section.querySelector<HTMLTextAreaElement>("#caption-edit");
     captionEl?.addEventListener("change", () => {
-      pages[focusIndex] = { ...pages[focusIndex], caption: captionEl.value };
+      const p = pages[focusIndex];
+      if (p) pages[focusIndex] = { ...p, caption: captionEl.value };
     });
 
     section.querySelectorAll<HTMLButtonElement>("[data-image-mode]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        pages[focusIndex] = { ...pages[focusIndex], imageMode: btn.dataset.imageMode as "fit" | "fill" };
+        const p = pages[focusIndex];
+        if (p) pages[focusIndex] = { ...p, imageMode: btn.dataset.imageMode as "fit" | "fill" };
         render();
       });
     });
@@ -447,14 +524,16 @@ export function renderZineStudio(root: HTMLElement): () => void {
     function applyPageFocalLive(): void {
       const img = section.querySelector<HTMLImageElement>(".zine-studio__page-img");
       const p = pages[focusIndex];
-      if (img) img.style.objectPosition = `${p.focalX ?? 50}% ${p.focalY ?? 50}%`;
+      if (img && p) img.style.objectPosition = `${p.focalX ?? 50}% ${p.focalY ?? 50}%`;
     }
     section.querySelector<HTMLInputElement>("#page-focal-x")?.addEventListener("input", (e) => {
-      pages[focusIndex] = { ...pages[focusIndex], focalX: Number((e.target as HTMLInputElement).value) };
+      const p = pages[focusIndex];
+      if (p) pages[focusIndex] = { ...p, focalX: Number((e.target as HTMLInputElement).value) };
       applyPageFocalLive();
     });
     section.querySelector<HTMLInputElement>("#page-focal-y")?.addEventListener("input", (e) => {
-      pages[focusIndex] = { ...pages[focusIndex], focalY: Number((e.target as HTMLInputElement).value) };
+      const p = pages[focusIndex];
+      if (p) pages[focusIndex] = { ...p, focalY: Number((e.target as HTMLInputElement).value) };
       applyPageFocalLive();
     });
 

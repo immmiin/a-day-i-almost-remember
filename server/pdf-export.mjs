@@ -108,7 +108,7 @@ async function drawCoverFace(doc, run, issueNumber, fonts) {
   const focalY = typeof cover.focalY === "number" ? cover.focalY : 38;
   const contrast = cover.contrast === "paper" ? "paper" : "ink";
   const showText = cover.showText !== false;
-  const sceneIndex = cover.sceneIndex ?? run.zine?.pages?.[0]?.sceneIndex ?? run.scenes[0]?.index ?? null;
+  const sceneIndex = cover.sceneIndex ?? run.zine?.pages?.find((p) => p)?.sceneIndex ?? run.scenes[0]?.index ?? null;
 
   page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
   const img = await embedSceneImage(doc, run, sceneIndex);
@@ -283,7 +283,7 @@ export async function exportRunToPdf(run, issueNumber = 1) {
         font: sans,
         color: rgb(0.8, 0.76, 0.72),
       });
-      page.drawText(`${run.scenes.length} scenes generated locally, ${pages.length} selected for this issue.`, {
+      page.drawText(`${run.scenes.length} scenes generated locally, ${pages.filter(Boolean).length} selected for this issue.`, {
         x: MARGIN,
         y: PAGE_H / 2 - 16,
         size: 8,

@@ -1,5 +1,5 @@
 import type { Fragment, Scene, TimeOfDay } from "./types";
-import { DAY_SEQUENCE } from "./types";
+import { EXTENDED_SEQUENCE, timeOfDayForIndex } from "./types";
 import { generateScene } from "./engine";
 import { instantiate, FRAGMENT_POOLS } from "./fragments";
 import { Rng, makeSeed } from "./rng";
@@ -15,7 +15,7 @@ export const DEFAULT_SEED_TEXT = "The smell of coffee before I opened my eyes.";
  * used before, unchanged.
  */
 function seedScene(userText: string, rng: Rng): Scene {
-  const timeOfDay: TimeOfDay = DAY_SEQUENCE[0];
+  const timeOfDay: TimeOfDay = EXTENDED_SEQUENCE[0];
   const seedFragment = instantiate(
     {
       label: userText.trim() || DEFAULT_SEED_TEXT,
@@ -73,14 +73,6 @@ export class DreamRunClient {
     return this.scenes.length;
   }
 
-  get isComplete(): boolean {
-    return this.scenes.length >= DAY_SEQUENCE.length;
-  }
-
-  get totalScenes(): number {
-    return DAY_SEQUENCE.length;
-  }
-
   get allScenes(): readonly Scene[] {
     return this.scenes;
   }
@@ -101,9 +93,13 @@ export class DreamRunClient {
     return client;
   }
 
-  /** Decides the next scene's fragments without generating its image yet. */
-  nextFragmentScene(): Scene | null {
-    if (this.isComplete) return null;
+  /**
+   * Decides the next scene's fragments without generating its image yet.
+   * There is no cap here — a run continues for as long as the user chooses
+   * to click "Generate"; this only ever runs once per explicit call, never
+   * in a loop, so it can't auto-generate a sequence on its own.
+   */
+  nextFragmentScene(): Scene {
     const index = this.scenes.length;
     const scene =
       index === 0
@@ -111,7 +107,7 @@ export class DreamRunClient {
         : generateScene({
             passedFragments: this.scenes[index - 1].passedForward,
             sceneIndex: index,
-            timeOfDay: DAY_SEQUENCE[index],
+            timeOfDay: timeOfDayForIndex(index),
             rng: this.rng,
           });
     this.scenes.push(scene);
@@ -119,7 +115,23 @@ export class DreamRunClient {
   }
 }
 
-/** What a scene actually sends the local generator — the restriction boundary in data form. */
+/**
+ * What a scene actually sends the local generator — the restriction boundary
+ * in data form.
+ *
+ * Only two of the four distortion axes describe something a camera could
+ * actually show: `material` (an object made of something else) and `scale`
+ * (an object the wrong size). `role` and `meaning` describe abstract,
+ * non-visual changes — "its role used to be object, now it is person" or a
+ * narrative clause like "it has started watching me back" — and feeding
+ * those straight into an image prompt as "the impossible detail" asks the
+ * model to render something that isn't a picture of anything, so it quietly
+ * falls back to the ordinary base scene. Confirmed empirically: a generation
+ * whose distortion was a `meaning` change came back as a plain, undistorted
+ * room. For those two axes, distortionNote is left undefined so the prompt
+ * builder substitutes one of its own concrete, camera-ready scenarios
+ * instead of trying to visualize prose.
+ */
 export function fragmentsForGeneration(scene: Scene): {
   rememberedFragments: string[];
   distortionNote: string | undefined;
@@ -130,9 +142,14 @@ export function fragmentsForGeneration(scene: Scene): {
   ];
   const distorted = scene.distorted;
   const changedFragment = distorted ? scene.inherited.find((f) => f.id === distorted.fragmentId) : null;
-  const distortionNote =
-    distorted && changedFragment
-      ? `${changedFragment.label} has changed: its ${distorted.axis} used to be ${distorted.before}, now it is ${distorted.after}. Otherwise it is the same object.`
-      : undefined;
+
+  let distortionNote: string | undefined;
+  if (distorted && changedFragment) {
+    if (distorted.axis === "material") {
+      distortionNote = `${changedFragment.label}, but now made of ${distorted.after} instead of ${distorted.before}, otherwise unchanged and sitting exactly where it always does, its new material clearly visible in the photograph.`;
+    } else if (distorted.axis === "scale") {
+      distortionNote = `${changedFragment.label}, but now ${distorted.after} instead of ${distorted.before}, dramatically out of proportion with the ordinary room around it, the size difference clearly visible in a wide photograph.`;
+    }
+  }
   return { rememberedFragments, distortionNote };
 }

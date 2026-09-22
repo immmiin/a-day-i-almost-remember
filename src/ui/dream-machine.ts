@@ -1,11 +1,11 @@
 import type { Scene } from "../generation/types";
-import { DAY_SEQUENCE } from "../generation/types";
 import { DreamRunClient, fragmentsForGeneration, DEFAULT_SEED_TEXT } from "../generation/dream-run";
 import { STAGE_THEME, applyStageTheme } from "./dream-machine-theme";
 import { buildDreamNav } from "./dream-nav";
 import { escapeHtml } from "./util";
 import { requestGeneration } from "./generation-client";
-import { createRun, saveScene, getRun, absoluteUrl, type SavedScene } from "./dream-api";
+import { createRun, saveScene, getRun, saveZinePages, absoluteUrl, type SavedScene, type ZinePageEntry } from "./dream-api";
+import { resolveCoverConfig } from "./zine-cover";
 
 type SceneState = "idle" | "generating" | "generated" | "error";
 
@@ -13,6 +13,12 @@ export function renderDreamMachine(root: HTMLElement): () => void {
   const query = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
   const resumeId = query.get("resume");
   const seedParam = query.get("seed");
+  // Set when Zine Studio launched this run to fill one specific empty page
+  // rather than just to add to the collection — remembered across the whole
+  // generation so a successful result can offer to go straight into that
+  // page instead of only ever landing in the general collection.
+  const targetPageParam = query.get("targetPage");
+  const targetPage = targetPageParam !== null && !Number.isNaN(Number(targetPageParam)) ? Number(targetPageParam) : null;
 
   const section = document.createElement("section");
   section.className = "view dream-machine";
@@ -35,6 +41,11 @@ export function renderDreamMachine(root: HTMLElement): () => void {
   let abortController: AbortController | null = null;
   let ready = false;
   let generationInFlight = false;
+  // Shown once, right after a successful generation that came from an empty
+  // zine page — dismissed by any of its three choices, never shown again for
+  // scenes generated afterward on this same visit unless the user regenerates.
+  let showTargetPrompt = false;
+  let insertingToPage = false;
 
   async function init(): Promise<void> {
     if (resumeId) {
@@ -133,7 +144,6 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     applyStageTheme(section, theme);
 
     const remembered = fragScene.inherited.filter((f) => f.id !== fragScene.distorted?.fragmentId);
-    const isLast = index === DAY_SEQUENCE.length - 1;
     const caption = savedScene
       ? savedScene.prompt.split(".")[1]?.trim() || savedScene.prompt.split(".")[0]
       : index === 0
@@ -151,7 +161,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
 
     section.innerHTML = `
       <div class="dream-machine__meta">
-        <span>scene ${index + 1} / ${DAY_SEQUENCE.length} · local generation</span>
+        <span>scene ${index + 1} · local generation</span>
         <span>${escapeHtml(fragScene.timeOfDay)}</span>
       </div>
       <p class="visually-hidden" role="status" aria-live="polite">${escapeHtml(statusMessage)}</p>
@@ -227,13 +237,26 @@ export function renderDreamMachine(root: HTMLElement): () => void {
                       : "Generate this scene"
               }</span>
             </button>
-            <div class="dream-machine__row">
-              <button type="button" class="dream-machine__btn" id="dm-save" ${savedScene ? "" : "disabled"}><span class="dream-machine__btn-label">${saveNote || "Save this one"}</span></button>
-              <button type="button" class="dream-machine__btn" id="dm-continue" ${savedScene ? "" : "disabled"}>
-                <span class="dream-machine__btn-label">${isLast ? "Open Dream Archive" : "Add another scene →"}</span>
-              </button>
-            </div>
-            ${saved.size > 0 ? `<a class="dream-machine__btn" href="#/zine?run=${encodeURIComponent(client.id)}">Back to Zine Studio</a>` : ""}
+            ${
+              showTargetPrompt && targetPage !== null && savedScene
+                ? `<p class="dream-machine__target-note">This image can go straight onto page ${targetPage + 2} of your zine.</p>
+                   <div class="dream-machine__row">
+                     <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-use-on-page" ${insertingToPage ? "disabled" : ""}>
+                       <span class="dream-machine__btn-label">${insertingToPage ? "Placing…" : "Use on selected page"}</span>
+                     </button>
+                   </div>
+                   <div class="dream-machine__row">
+                     <button type="button" class="dream-machine__btn" id="dm-keep-collection"><span class="dream-machine__btn-label">Keep in image collection</span></button>
+                     <a class="dream-machine__btn" href="#/zine?run=${encodeURIComponent(client.id)}">Back to Zine Studio</a>
+                   </div>`
+                : `<div class="dream-machine__row">
+                    <button type="button" class="dream-machine__btn" id="dm-save" ${savedScene ? "" : "disabled"}><span class="dream-machine__btn-label">${saveNote || "Save this one"}</span></button>
+                    <button type="button" class="dream-machine__btn" id="dm-continue" ${savedScene ? "" : "disabled"}>
+                      <span class="dream-machine__btn-label">Add another scene →</span>
+                    </button>
+                  </div>
+                  ${saved.size > 0 ? `<a class="dream-machine__btn" href="#/zine?run=${encodeURIComponent(client.id)}">Back to Zine Studio</a>` : ""}`
+            }
           </div>
           <p class="dream-machine__setup-note">
             Runs locally through Draw Things (FLUX.1 Kontext dev) — no cloud, no per-image cost. This
@@ -257,14 +280,46 @@ export function renderDreamMachine(root: HTMLElement): () => void {
         saveNote = "";
       }, 2000);
     });
-    section.querySelector<HTMLButtonElement>("#dm-continue")!.addEventListener("click", () => {
-      if (isLast) {
-        window.location.hash = "#/archive";
-        return;
-      }
+    section.querySelector<HTMLButtonElement>("#dm-continue")?.addEventListener("click", () => {
       index += 1;
       sceneState = stateForIndex(index);
+      showTargetPrompt = false;
       render();
+    });
+
+    section.querySelector<HTMLButtonElement>("#dm-keep-collection")?.addEventListener("click", () => {
+      // The scene is already saved to the run's collection (every successful
+      // generation is) — dismissing just returns to the normal scene view so
+      // the user can keep generating here without it being pinned to a page.
+      showTargetPrompt = false;
+      render();
+    });
+
+    section.querySelector<HTMLButtonElement>("#dm-use-on-page")?.addEventListener("click", async () => {
+      if (targetPage === null || insertingToPage) return;
+      const record = saved.get(index);
+      if (!record) return;
+      insertingToPage = true;
+      render();
+      try {
+        // Re-fetch rather than trust any zine state held in this view —
+        // Zine Studio is the source of truth for pages/title/cover, and it
+        // saves its own in-progress edits right before sending here.
+        const fresh = await getRun(client.id);
+        const CONTENT_SLOTS = 14;
+        const existing = fresh?.zine?.pages ?? [];
+        const pages: (ZinePageEntry | null)[] = Array.from({ length: CONTENT_SLOTS }, (_, i) => existing[i] ?? null);
+        pages[targetPage] = { sceneIndex: index, layout: "full" };
+        await saveZinePages(
+          client.id,
+          fresh?.zine?.title || client.seedText,
+          pages,
+          resolveCoverConfig(fresh?.zine?.cover),
+        );
+        window.location.hash = `#/zine?run=${encodeURIComponent(client.id)}`;
+      } finally {
+        insertingToPage = false;
+      }
     });
   }
 
@@ -275,6 +330,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     // can never fire two requests for the same scene.
     if (generationInFlight) return;
     generationInFlight = true;
+    showTargetPrompt = false;
     const fragScene = ensureFragmentScene(index);
     const { rememberedFragments, distortionNote } = fragmentsForGeneration(fragScene);
     sceneState = "generating";
@@ -307,6 +363,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
       saved.set(index, record);
       await saveScene(client.id, record);
       sceneState = "generated";
+      if (targetPage !== null) showTargetPrompt = true;
     } else if (result.reason !== "cancelled") {
       lastErrorReason = result.reason;
       sceneState = "error";

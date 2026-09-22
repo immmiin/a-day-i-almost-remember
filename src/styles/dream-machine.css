@@ -344,6 +344,14 @@
   flex: 1;
 }
 
+.dream-machine__target-note {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  margin: 0;
+}
+
 .dream-machine__setup-note {
   font-family: var(--font-mono);
   font-size: 0.66rem;

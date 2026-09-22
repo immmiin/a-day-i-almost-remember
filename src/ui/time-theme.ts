@@ -67,6 +67,34 @@ export const TIME_THEME: Record<TimeOfDay, SceneTheme> = {
     ...toAccents(DARK_ACCENTS),
     label: "night",
   },
+  "late-night": {
+    bg: "#0f1220",
+    ink: "#e4e2ec",
+    grain: 0.09,
+    ...toAccents(DARK_ACCENTS),
+    label: "late night",
+  },
+  midnight: {
+    bg: "#0a0a14",
+    ink: "#dedaea",
+    grain: 0.1,
+    ...toAccents(DARK_ACCENTS),
+    label: "midnight",
+  },
+  "pre-dawn": {
+    bg: "#232338",
+    ink: "#e9e6f0",
+    grain: 0.07,
+    ...toAccents(DARK_ACCENTS),
+    label: "pre-dawn",
+  },
+  "next-morning": {
+    bg: "#dde2e1",
+    ink: "#1c1f22",
+    grain: 0.04,
+    ...toAccents(LIGHT_ACCENTS),
+    label: "the next morning",
+  },
 };
 
 function toAccents(a: { remember: string; forget: string; distort: string }) {

@@ -49,7 +49,8 @@ export interface RunDetail {
   scenes: SavedScene[];
   zine: {
     title?: string;
-    pages?: ZinePageEntry[];
+    /** fixed-length page grid; a `null` slot is an empty page, not "no pages after this point" */
+    pages?: (ZinePageEntry | null)[];
     cover?: Partial<CoverConfig>;
     pdfUrl?: string;
     pageCount?: number;
@@ -103,7 +104,7 @@ export async function deleteRun(id: string): Promise<void> {
 export async function saveZinePages(
   runId: string,
   title: string,
-  pages: ZinePageEntry[],
+  pages: (ZinePageEntry | null)[],
   cover?: CoverConfig,
 ): Promise<RunDetail> {
   return json(
