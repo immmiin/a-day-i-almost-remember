@@ -1,0 +1,24 @@
+- region "Generating a day" [ref=f4e3]:
+  - navigation "Site" [ref=f4e4]:
+    - link "a day i almost remember" [ref=f4e5] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f4e6]:
+      - link "generate" [ref=f4e7] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f4e8] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f4e9]:
+    - generic [ref=f4e10]:
+      - generic [ref=f4e11]: scene 1 / 7
+      - generic [ref=f4e12]: early morning
+    - img "Day progress" [ref=f4e13]
+  - generic [ref=f4e22]:
+    - paragraph [ref=f4e23]: It's early enough that the light hasn't decided what color to be yet. There's my own reflection in the dark window, not quite looking back the same way.
+    - generic [ref=f4e26]:
+      - generic [ref=f4e27]: passes forward
+      - generic [ref=f4e28]: my own reflection in the dark window
+  - generic [ref=f4e29]:
+    - generic [ref=f4e30]:
+      - checkbox "skip transitions" [ref=f4e31]
+      - text: skip transitions
+    - button "Continue" [ref=f4e32] [cursor=pointer]

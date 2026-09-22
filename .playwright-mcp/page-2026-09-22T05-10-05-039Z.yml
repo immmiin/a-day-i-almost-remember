@@ -1,0 +1,25 @@
+- region "Generating a day" [ref=f18e91]:
+  - navigation "Site" [ref=f18e92]:
+    - link "a day i almost remember" [ref=f18e93] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f18e94]:
+      - link "generate" [ref=f18e95] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f18e96] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f18e97]:
+    - generic [ref=f18e98]:
+      - generic [ref=f18e99]: scene 1 / 7
+      - generic [ref=f18e100]: early morning
+    - img "Day progress" [ref=f18e101]
+  - generic [ref=f18e110]:
+    - paragraph [ref=f18e111]: It's early enough that the light hasn't decided what color to be yet. I notice the dog by the door for the first time today. Yesterday's clothes on the chair shows up, a chair's worth, the way it does.
+    - generic [ref=f18e114]:
+      - generic [ref=f18e115]: passes forward
+      - generic [ref=f18e116]: the dog by the door
+      - generic [ref=f18e117]: yesterday's clothes on the chair
+  - generic [ref=f18e118]:
+    - generic [ref=f18e119]:
+      - checkbox "skip transitions" [ref=f18e120]
+      - text: skip transitions
+    - button "Continue" [ref=f18e121] [cursor=pointer]

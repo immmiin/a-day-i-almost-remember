@@ -1,0 +1,25 @@
+- region "Generating a day" [ref=f18e15]:
+  - navigation "Site" [ref=f18e16]:
+    - link "a day i almost remember" [ref=f18e17] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f18e18]:
+      - link "generate" [ref=f18e19] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f18e20] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f18e21]:
+    - generic [ref=f18e22]:
+      - generic [ref=f18e23]: scene 1 / 7
+      - generic [ref=f18e24]: early morning
+    - img "Day progress" [ref=f18e25]
+  - generic [ref=f18e34]:
+    - paragraph [ref=f18e35]: I wake into the day the way I always do, without much ceremony. There's my own reflection in the dark window, not quite looking back the same way. I notice my mother's voice from the kitchen for the first time today.
+    - generic [ref=f18e38]:
+      - generic [ref=f18e39]: passes forward
+      - generic [ref=f18e40]: my own reflection in the dark window
+      - generic [ref=f18e41]: my mother's voice from the kitchen
+  - generic [ref=f18e42]:
+    - generic [ref=f18e43]:
+      - checkbox "skip transitions" [ref=f18e44]
+      - text: skip transitions
+    - button "Continue" [ref=f18e45] [cursor=pointer]

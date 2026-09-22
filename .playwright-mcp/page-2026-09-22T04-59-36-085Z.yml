@@ -1,0 +1,24 @@
+- region "Generating a day" [ref=e15]:
+  - navigation "Site" [ref=e16]:
+    - link "a day i almost remember" [ref=e17] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=e18]:
+      - link "generate" [ref=e19] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=e20] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: scene 1 / 7
+      - generic [ref=e24]: early morning
+    - img "Day progress" [ref=e25]
+  - generic [ref=e34]:
+    - paragraph [ref=e35]: I wake into the day the way I always do, without much ceremony. There's my own reflection in the dark window, not quite looking back the same way.
+    - generic [ref=e38]:
+      - generic [ref=e39]: passes forward
+      - generic [ref=e40]: my own reflection in the dark window
+  - generic [ref=e41]:
+    - generic [ref=e42]:
+      - checkbox "skip transitions" [ref=e43]
+      - text: skip transitions
+    - button "Continue" [ref=e44] [cursor=pointer]

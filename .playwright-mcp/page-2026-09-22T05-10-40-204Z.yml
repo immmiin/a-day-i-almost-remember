@@ -1,0 +1,65 @@
+- region "Dream Archive" [ref=f20e3]:
+  - navigation "Site" [ref=f20e4]:
+    - link "a day i almost remember" [ref=f20e5] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f20e6]:
+      - link "generate" [ref=f20e7] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f20e8] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f20e10]:
+    - heading "Dream Archive" [level=1] [ref=f20e11]
+    - paragraph [ref=f20e12]: 1 run saved on this device
+  - generic [ref=f20e13]:
+    - generic [ref=f20e14]: 0 scenes selected for the zine
+    - generic [ref=f20e15]:
+      - button "export selection · text" [disabled] [ref=f20e16]
+      - button "export selection · json" [disabled] [ref=f20e17]
+  - generic [ref=f20e18]:
+    - generic [ref=f20e19]:
+      - generic [ref=f20e20]: run-mc7kev-muc7t
+      - generic [ref=f20e21]: 2026. 9. 22. 오전 1:10:23
+      - generic [ref=f20e22]: in progress · 4/7
+      - link "resume →" [ref=f20e23] [cursor=pointer]:
+        - /url: "#/generate?resume=run-mc7kev-muc7tu9b"
+      - generic [ref=f20e24]:
+        - button "export text" [ref=f20e25] [cursor=pointer]
+        - button "export json" [ref=f20e26] [cursor=pointer]
+        - button "delete" [ref=f20e27] [cursor=pointer]
+    - generic [ref=f20e28]:
+      - article [ref=f20e29]:
+        - generic [ref=f20e30]:
+          - generic [ref=f20e31]: scene 1 · early morning
+          - generic [ref=f20e32] [cursor=pointer]:
+            - checkbox "zine" [ref=f20e33]
+            - text: zine
+        - paragraph [ref=f20e34]: I wake into the day the way I always do, without much ceremony. Yesterday's clothes on the chair shows up, a chair's worth, the way it does. I notice the dog by the door for the first time today.
+        - group [ref=f20e35]:
+          - generic "+ what changed" [ref=f20e36] [cursor=pointer]
+      - article [ref=f20e37]:
+        - generic [ref=f20e38]:
+          - generic [ref=f20e39]: scene 2 · morning
+          - generic [ref=f20e40] [cursor=pointer]:
+            - checkbox "zine" [ref=f20e41]
+            - text: zine
+        - paragraph [ref=f20e42]: By the time I'm properly awake, the morning is already underway. There's yesterday's clothes on the chair, exactly where I left it. I notice the dog by the door again — waiting the way it always waits. There's my badge on its lanyard, the thing that makes me someone at work. I notice a stack of unopened mail for the first time today.
+        - group [ref=f20e43]:
+          - generic "+ what changed" [ref=f20e44] [cursor=pointer]
+      - article [ref=f20e45]:
+        - generic [ref=f20e46]:
+          - generic [ref=f20e47]: scene 3 · midday
+          - generic [ref=f20e48] [cursor=pointer]:
+            - checkbox "zine" [ref=f20e49]
+            - text: zine
+        - paragraph [ref=f20e50]: By noon the day has settled into its own rhythm. I notice the dog by the door again — waiting the way it always waits. I notice my badge on its lanyard again — the thing that makes me someone at work. I notice the clock above the door for the first time today.
+        - group [ref=f20e51]:
+          - generic "+ what changed" [ref=f20e52] [cursor=pointer]
+      - article [ref=f20e53]:
+        - generic [ref=f20e54]:
+          - generic [ref=f20e55]: scene 4 · afternoon
+          - generic [ref=f20e56] [cursor=pointer]:
+            - checkbox "zine" [ref=f20e57]
+            - text: zine
+        - paragraph [ref=f20e58]: The afternoon goes on, unremarkable, the way it's supposed to. I notice the dog by the door again — waiting the way it always waits. My badge on its lanyard isn't an object anymore. It's a place now, and I don't think to question it. There's a plant on the windowsill, someone's small attempt at care.
+        - group [ref=f20e59]:
+          - generic "+ what changed" [ref=f20e60] [cursor=pointer]

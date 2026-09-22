@@ -1,0 +1,15 @@
+- region [ref=e3]:
+  - generic [ref=e4]:
+    - heading "A Day I Almost Remember" [level=1] [ref=e5]:
+      - generic [ref=e6]: A Day
+      - generic [ref=e7]: I Almost
+      - generic [ref=e8]: Remember
+    - generic [ref=e9]:
+      - paragraph [ref=e10]:
+        - text: A generator, not a story. Each scene remembers only
+        - strong [ref=e11]: two or three fragments
+        - text: of the one before it, forgets the rest, and lets exactly one surviving fragment come back changed. The protagonist never seems to notice. Morning drifts to night this way, one withheld detail at a time, until the ordinary day is barely itself.
+      - button "Begin a day" [ref=e12] [cursor=pointer]:
+        - text: Begin a day
+        - generic [aria-hidden] [ref=e13]: →
+  - paragraph [ref=e14]: a procedural memory · remember → forget → distort → pass forward

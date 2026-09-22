@@ -1,0 +1,9 @@
+[   82018ms] ReferenceError: lowerFirst is not defined
+    at http://localhost:5183/src/generation/templates.ts?t=1790053239061:45:21
+    at assembleProse (http://localhost:5183/src/generation/templates.ts?t=1790053239061:72:49)
+    at generateScene (http://localhost:5183/src/generation/engine.ts?t=1790053239061:24:17)
+    at DayGenerator.next (http://localhost:5183/src/generation/engine.ts?t=1790053239061:76:19)
+    at advance (http://localhost:5183/src/ui/generation-view.ts?t=1790053239061:152:29)
+    at renderGeneration (http://localhost:5183/src/ui/generation-view.ts?t=1790053239061:174:5)
+    at route (http://localhost:5183/src/main.ts?t=1790053239061:16:15)
+    at http://localhost:5183/src/main.ts?t=1790053239061:22:1

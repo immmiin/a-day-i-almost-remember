@@ -1,0 +1,25 @@
+- region "Generating a day" [ref=f20e118]:
+  - navigation "Site" [ref=f20e119]:
+    - link "a day i almost remember" [ref=f20e120] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f20e121]:
+      - link "generate" [ref=f20e122] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f20e123] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f20e124]:
+    - generic [ref=f20e125]:
+      - generic [ref=f20e126]: scene 1 / 7
+      - generic [ref=f20e127]: early morning
+    - img "Day progress" [ref=f20e128]
+  - generic [ref=f20e137]:
+    - paragraph [ref=f20e138]: The day starts before I'm ready for it. I notice yesterday's clothes on the chair for the first time today. There's a glass of water by the bed, half-finished, left there out of habit.
+    - generic [ref=f20e141]:
+      - generic [ref=f20e142]: passes forward
+      - generic [ref=f20e143]: a glass of water by the bed
+      - generic [ref=f20e144]: yesterday's clothes on the chair
+  - generic [ref=f20e145]:
+    - generic [ref=f20e146]:
+      - checkbox "skip transitions" [ref=f20e147]
+      - text: skip transitions
+    - button "Continue" [ref=f20e148] [cursor=pointer]

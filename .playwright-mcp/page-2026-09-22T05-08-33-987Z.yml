@@ -1,0 +1,40 @@
+- region "Generating a day" [ref=f18e15]:
+  - navigation "Site" [ref=f18e16]:
+    - link "a day i almost remember" [ref=f18e17] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=f18e18]:
+      - link "generate" [ref=f18e19] [cursor=pointer]:
+        - /url: "#/generate"
+      - link "dream archive" [ref=f18e20] [cursor=pointer]:
+        - /url: "#/archive"
+  - generic [ref=f18e21]:
+    - generic [ref=f18e22]:
+      - generic [ref=f18e23]: scene 5 / 7
+      - generic [ref=f18e24]: dusk
+    - img "Day progress" [ref=f18e25]
+  - generic [ref=f18e34]:
+    - paragraph [ref=f18e46]: Dusk arrives the way it always does — gradually, then all at once. The ice in my glass is still here, melting a little faster than I expect. Something about my own reflection in the dark window feels different now, though I can't say exactly what. I notice a plant on the windowsill again — someone's small attempt at care. The train doors closing shows up, a single loud moment, the way it does. There's the orange light on the buildings, the one hour the city looks kind.
+    - generic [ref=f18e47]:
+      - generic [ref=f18e48]:
+        - generic [ref=f18e49]: remembers
+        - generic [ref=f18e50]:
+          - generic [ref=f18e51]: the ice in my glass
+          - generic [ref=f18e52]: a plant on the windowsill
+      - generic [ref=f18e53]:
+        - generic [ref=f18e54]: distorts
+        - generic [ref=f18e55]: "my own reflection in the dark window — meaning: not quite looking back the same way — leaving a faint grey mark on everything it touches → still not quite looking back the same way — leaving a faint grey mark on everything it touches, but it has started watching me back"
+      - generic [ref=f18e56]:
+        - generic [ref=f18e57]: forgets
+        - generic [ref=f18e58]:
+          - generic [ref=f18e59]: my own reflection in the dark window
+          - generic [ref=f18e60]: a plant on the windowsill
+          - generic [ref=f18e61]: the train doors closing
+      - generic [ref=f18e63]:
+        - generic [ref=f18e64]: passes forward
+        - generic [ref=f18e65]: the ice in my glass
+        - generic [ref=f18e66]: the orange light on the buildings
+  - generic [ref=f18e42]:
+    - generic [ref=f18e67]:
+      - checkbox "skip transitions" [ref=f18e68]
+      - text: skip transitions
+    - button "Continue" [ref=f18e69] [cursor=pointer]
