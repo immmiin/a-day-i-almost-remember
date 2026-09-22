@@ -2,9 +2,11 @@
   min-height: 100dvh;
   background: var(--dream-paper);
   color: var(--dream-ink);
-  padding: 6rem clamp(1.25rem, 4vw, 3rem) 3rem;
+  /* Close below the now-compact floating nav, not a full header's worth
+     of clearance — the magazine stage is the point of this page. */
+  padding: clamp(3.5rem, 8vh, 4.5rem) clamp(1.25rem, 4vw, 3rem) 2rem;
   display: grid;
-  gap: 2.5rem;
+  gap: 1.1rem;
 }
 
 .dream-archive__loading {
@@ -14,17 +16,37 @@
   opacity: 0.7;
 }
 
-.dream-archive__header {
-  border-bottom: 1px solid color-mix(in srgb, var(--dream-ink) 18%, transparent);
-  padding-bottom: 1.25rem;
+.dream-archive__topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.dream-archive__title {
-  font-family: var(--font-archive-display);
-  font-weight: 400;
-  font-size: clamp(2.25rem, 6vw, 3.75rem);
-  letter-spacing: -0.01em;
-  margin: 0 0 0.4rem;
+.dream-archive__label {
+  font-family: var(--font-archive-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dream-ink-soft);
+  opacity: 0.8;
+}
+
+.dream-archive__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.dream-archive__footnote {
+  font-family: var(--font-archive-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+  color: var(--dream-ink-soft);
+  opacity: 0.7;
+  text-align: center;
+  padding-top: 0.5rem;
 }
 
 .dream-archive__meta {
@@ -97,15 +119,6 @@
   color: #fff;
 }
 
-/* ---------- toolbar: Collection/Index + filter ---------- */
-
-.dream-archive__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
 /* ---------- empty state ---------- */
 
 .dream-archive__intro {
@@ -174,9 +187,9 @@
 
 .dream-archive__layout {
   display: grid;
-  grid-template-columns: minmax(240px, 30%) 1fr;
-  gap: clamp(1.5rem, 3vw, 3rem);
-  align-items: start;
+  grid-template-columns: minmax(220px, 27%) 1fr;
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
+  align-items: center;
 }
 
 .dream-archive__info {
@@ -228,15 +241,9 @@
   margin: 0;
 }
 
-.dream-archive__info-divider {
-  height: 1px;
-  background: color-mix(in srgb, var(--dream-ink) 16%, transparent);
-}
-
 .dream-archive__info-facts {
   display: grid;
-  gap: 0.5rem;
-  margin: 0;
+  margin: 0.3rem 0 0;
   font-family: var(--font-archive-mono);
   font-size: 0.72rem;
 }
@@ -245,6 +252,8 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--dream-ink) 12%, transparent);
 }
 
 .dream-archive__info-facts dt {
@@ -260,22 +269,109 @@
 .dream-archive__info-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+/* One clearly primary action, everything else tucked behind a quiet
+   disclosure — not a second and third row of equally loud pills. */
+.dream-archive__more {
+  position: relative;
+}
+
+.dream-archive__more summary {
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--font-archive-mono);
+  font-size: 0.7rem;
+  color: var(--dream-ink-soft);
+  padding: 0.3em 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--dream-ink) 40%, transparent);
+  transition: color 140ms var(--ease-out);
+}
+
+.dream-archive__more summary::-webkit-details-marker {
+  display: none;
+}
+
+.dream-archive__more summary:hover,
+.dream-archive__more[open] summary {
+  color: var(--dream-ink);
+}
+
+.dream-archive__more-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 13rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  background: var(--dream-paper-ink);
+  border: 1px solid color-mix(in srgb, var(--dream-ink) 15%, transparent);
+  box-shadow: 0 20px 40px -18px rgba(20, 14, 22, 0.35);
+}
+
+.dream-archive__more-label {
+  font-family: var(--font-archive-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dream-ink-soft);
+  opacity: 0.65;
+  padding: 0.5rem 0.5rem 0.1rem;
+}
+
+.dream-archive__btn--ghost {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  padding: 0.4em 0.5em;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--dream-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out);
+}
+
+.dream-archive__btn--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--dream-ink) 8%, transparent);
+}
+
+.dream-archive__btn--ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dream-archive__btn--ghost-danger {
+  color: var(--dream-pink-deep);
 }
 
 /* ---------- the magazine stage ---------- */
 
 .dream-archive__stage-col {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
   justify-items: center;
   min-width: 0;
 }
 
+/* Sized by height first, not width — the selected cover is meant to
+   occupy most of the viewport's vertical space, constrained by both
+   dimensions at once (see .dream-archive__mag's height + aspect-ratio +
+   max-width below), not just fill a column. */
 .dream-archive__stage {
   position: relative;
   width: 100%;
-  height: min(66vh, 560px);
+  height: min(80vh, 78dvh, 820px);
+  max-height: calc(100dvh - 11rem);
   perspective: 1400px;
   overflow: hidden;
   border-radius: 12px;
@@ -296,8 +392,10 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(58%, 300px);
+  height: 88%;
+  width: auto;
   aspect-ratio: 148 / 210;
+  max-width: min(62vw, 460px);
   padding: 0;
   border: none;
   background: none;
@@ -421,8 +519,21 @@
   right: 0.5rem;
 }
 
-.dream-archive__position {
+.dream-archive__stage-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-family: var(--font-archive-mono);
+}
+
+.dream-archive__scroll-hint {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--dream-ink-soft);
+  opacity: 0.55;
+}
+
+.dream-archive__position {
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   color: var(--dream-ink-soft);
@@ -437,7 +548,11 @@
     order: -1;
   }
   .dream-archive__stage {
-    height: 58vh;
+    height: 56vh;
+    max-height: none;
+  }
+  .dream-archive__scroll-hint {
+    display: none; /* mobile browses by swipe, not scroll */
   }
 }
 

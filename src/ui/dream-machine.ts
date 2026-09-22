@@ -141,7 +141,12 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     const fragScene = ensureFragmentScene(index);
     const savedScene = saved.get(index);
     const theme = STAGE_THEME[fragScene.timeOfDay] ?? STAGE_THEME.morning;
-    applyStageTheme(section, theme);
+    // Set on the document root, not just this section — the fixed nav
+    // bar is a sibling of .dream-machine, not a descendant, and now that
+    // it's transparent (see dream-shared.css) it needs the same ink color
+    // to stay readable against whatever time-of-day background is behind
+    // it. Custom properties inherit down from the root to both.
+    applyStageTheme(document.documentElement, theme);
 
     const remembered = fragScene.inherited.filter((f) => f.id !== fragScene.distorted?.fragmentId);
     const caption = savedScene
@@ -378,5 +383,9 @@ export function renderDreamMachine(root: HTMLElement): () => void {
 
   return () => {
     abortController?.abort();
+    // Otherwise the last scene's time-of-day color would leak into the
+    // nav (and anything else reading these) on every other route.
+    document.documentElement.style.removeProperty("--stage-bg");
+    document.documentElement.style.removeProperty("--stage-ink");
   };
 }

@@ -9,6 +9,9 @@ type ViewMode = "collection" | "index";
 
 const VISIBLE_RADIUS = 2; // offsets -2..2 around the selected magazine are rendered
 const DRAG_THRESHOLD_PX = 40;
+const WHEEL_STEP_PX = 55; // accumulated delta before one step fires
+const WHEEL_STEP_COOLDOWN_MS = 420; // matches the card transition — one settle per step
+const WHEEL_GESTURE_IDLE_MS = 150; // no wheel events for this long = the gesture ended, reset the accumulator
 
 export function renderDreamArchive(root: HTMLElement): () => void {
   const section = document.createElement("section");
@@ -18,12 +21,22 @@ export function renderDreamArchive(root: HTMLElement): () => void {
   root.appendChild(section);
   section.innerHTML = `<p class="dream-archive__loading">loading your dream archive…</p>`;
 
+  // One controller for every listener this view attaches, across every
+  // repaint — aborting it on unmount (see the return value below) removes
+  // all of them in one call, including the wheel listener that's the only
+  // one genuinely route-specific enough to matter.
+  const controller = new AbortController();
+  const { signal } = controller;
+
   let runs: RunSummary[] = [];
   let backendReachable = true;
   let filter: Filter = "all";
   let viewMode: ViewMode = "collection";
   let selectedId: string | null = null;
   let spreadExporting: string | null = null;
+  let wheelAccum = 0;
+  let wheelLocked = false;
+  let wheelIdleTimer = 0;
 
   function filtered(): RunSummary[] {
     if (filter === "completed") return runs.filter((r) => r.completed);
@@ -64,28 +77,26 @@ export function renderDreamArchive(root: HTMLElement): () => void {
     const selected = list[selectedIndex] ?? null;
 
     section.innerHTML = `
-      <header class="dream-archive__header">
-        <h1 class="dream-archive__title">Dream Archive</h1>
-        <p class="dream-archive__meta">saved on this device only — nothing here is shared or uploaded anywhere</p>
-      </header>
+      <div class="dream-archive__topbar">
+        <span class="dream-archive__label">Dream Archive</span>
+        <div class="dream-archive__controls">
+          <div class="zine-studio__segmented" role="group" aria-label="Browsing mode">
+            <button type="button" class="zine-studio__tool zine-studio__tool--small${viewMode === "collection" ? " is-active" : ""}" data-view-mode="collection" aria-pressed="${viewMode === "collection"}">Collection</button>
+            <button type="button" class="zine-studio__tool zine-studio__tool--small${viewMode === "index" ? " is-active" : ""}" data-view-mode="index" aria-pressed="${viewMode === "index"}">Index</button>
+          </div>
+          <div class="zine-studio__segmented" role="group" aria-label="Filter issues">
+            <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "all" ? " is-active" : ""}" data-filter="all" aria-pressed="${filter === "all"}">All</button>
+            <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "completed" ? " is-active" : ""}" data-filter="completed" aria-pressed="${filter === "completed"}">Completed</button>
+            <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "drafts" ? " is-active" : ""}" data-filter="drafts" aria-pressed="${filter === "drafts"}">Drafts</button>
+          </div>
+        </div>
+      </div>
 
       ${
         !backendReachable
           ? `<p class="dream-archive__empty">The local backend isn't reachable right now, so saved runs can't be listed. Start it with <code>npm run server</code>.</p>`
           : ""
       }
-
-      <div class="dream-archive__toolbar">
-        <div class="zine-studio__segmented" role="group" aria-label="Browsing mode">
-          <button type="button" class="zine-studio__tool zine-studio__tool--small${viewMode === "collection" ? " is-active" : ""}" data-view-mode="collection" aria-pressed="${viewMode === "collection"}">Collection</button>
-          <button type="button" class="zine-studio__tool zine-studio__tool--small${viewMode === "index" ? " is-active" : ""}" data-view-mode="index" aria-pressed="${viewMode === "index"}">Index</button>
-        </div>
-        <div class="zine-studio__segmented" role="group" aria-label="Filter issues">
-          <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "all" ? " is-active" : ""}" data-filter="all" aria-pressed="${filter === "all"}">All</button>
-          <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "completed" ? " is-active" : ""}" data-filter="completed" aria-pressed="${filter === "completed"}">Completed</button>
-          <button type="button" class="zine-studio__tool zine-studio__tool--small${filter === "drafts" ? " is-active" : ""}" data-filter="drafts" aria-pressed="${filter === "drafts"}">Drafts</button>
-        </div>
-      </div>
 
       ${
         list.length === 0
@@ -109,6 +120,8 @@ export function renderDreamArchive(root: HTMLElement): () => void {
           ).join("")}
         </div>
       </section>
+
+      <footer class="dream-archive__footnote">saved on this device only — nothing here is shared or uploaded anywhere</footer>
     `;
 
     wireEvents(list, selectedIndex);
@@ -135,33 +148,44 @@ export function renderDreamArchive(root: HTMLElement): () => void {
   function infoPanel(r: RunSummary): string {
     const cover = resolveCoverConfig(r.cover);
     const title = cover.title || r.zineTitle || r.seedText || "Untitled dream";
-    const intro = r.seedText || "";
+    const intro = (r.seedText || "").trim();
+    // A description that just repeats the title (very common — the issue
+    // title defaults to the seed text unless someone edits it separately)
+    // gets omitted rather than printed twice. The seed text itself is
+    // never touched, so nothing here can lose the saved data.
+    const showIntro = intro && intro.toLowerCase() !== title.trim().toLowerCase();
     return `
       <div class="dream-archive__info-kicker">
-        <span>${r.completed ? `Issue ${r.issueNumber}` : "Draft"}</span>
+        ${r.completed ? `<span>Issue ${r.issueNumber}</span>` : ""}
         <span class="dream-archive__info-status dream-archive__info-status--${r.completed ? "done" : "draft"}">${statusLabel(r)}</span>
       </div>
       <h2 class="dream-archive__info-title">${escapeHtml(title)}</h2>
-      ${intro ? `<p class="dream-archive__info-intro">${escapeHtml(intro)}</p>` : ""}
-      <div class="dream-archive__info-divider"></div>
+      ${showIntro ? `<p class="dream-archive__info-intro">${escapeHtml(intro)}</p>` : ""}
       <dl class="dream-archive__info-facts">
         <div><dt>Date</dt><dd>${new Date(r.createdAt).toLocaleDateString()}</dd></div>
-        <div><dt>Pages</dt><dd>${r.filledPageCount} of 14 interior pages set · 16-page A5</dd></div>
-        <div><dt>Scenes</dt><dd>${r.sceneCount} generated</dd></div>
+        <div><dt>Pages</dt><dd>${r.filledPageCount} / 14 set</dd></div>
+        <div><dt>Images</dt><dd>${r.sceneCount} generated</dd></div>
       </dl>
-      <div class="dream-archive__info-divider"></div>
       <div class="dream-archive__info-actions">
         ${
           r.completed
-            ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + "-spreads.pdf")}" target="_blank" rel="noopener" data-open-reader="${escapeHtml(r.id)}">Read issue</a>
-               <a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>
-               <a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue dreaming</a>
-               <a class="dream-archive__btn" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" download>Download pages</a>
-               <button type="button" class="dream-archive__btn" data-download-spreads="${escapeHtml(r.id)}" ${spreadExporting === r.id ? "disabled" : ""}>${spreadExporting === r.id ? "Preparing…" : "Download spreads"}</button>`
-            : `<a class="dream-archive__btn dream-archive__btn--primary" href="#/zine?run=${encodeURIComponent(r.id)}">Continue editing</a>
-               <a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue dreaming</a>
-               <button type="button" class="dream-archive__btn dream-archive__btn--danger" data-delete-run="${escapeHtml(r.id)}">Delete</button>`
+            ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + "-spreads.pdf")}" target="_blank" rel="noopener">Read issue</a>`
+            : `<a class="dream-archive__btn dream-archive__btn--primary" href="#/zine?run=${encodeURIComponent(r.id)}">Continue editing</a>`
         }
+        <details class="dream-archive__more">
+          <summary>More</summary>
+          <div class="dream-archive__more-menu">
+            <a class="dream-archive__btn--ghost" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>
+            <a class="dream-archive__btn--ghost" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue dreaming</a>
+            ${
+              r.completed
+                ? `<span class="dream-archive__more-label">Download</span>
+                   <a class="dream-archive__btn--ghost" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" download>Pages (16-page A5)</a>
+                   <button type="button" class="dream-archive__btn--ghost" data-download-spreads="${escapeHtml(r.id)}" ${spreadExporting === r.id ? "disabled" : ""}>${spreadExporting === r.id ? "Preparing spreads…" : "Spreads (9 canvases)"}</button>`
+                : `<button type="button" class="dream-archive__btn--ghost dream-archive__btn--ghost-danger" data-delete-run="${escapeHtml(r.id)}">Delete draft</button>`
+            }
+          </div>
+        </details>
       </div>
     `;
   }
@@ -209,7 +233,10 @@ export function renderDreamArchive(root: HTMLElement): () => void {
             </div>
             <button type="button" class="dream-archive__nav-btn dream-archive__nav-btn--next" id="mag-next" aria-label="Next issue" ${selectedIndex >= list.length - 1 ? "disabled" : ""}>›</button>
           </div>
-          <p class="dream-archive__position">${pos}</p>
+          <div class="dream-archive__stage-foot">
+            ${list.length > 1 ? `<span class="dream-archive__scroll-hint">Scroll to explore</span>` : ""}
+            <p class="dream-archive__position">${pos}</p>
+          </div>
         </div>
       </div>
     `;
@@ -294,6 +321,48 @@ export function renderDreamArchive(root: HTMLElement): () => void {
       }
     });
 
+    // Wheel browses the collection: scroll down/right = next, up/left =
+    // previous. Deltas accumulate (not one step per event) so a single
+    // trackpad flick's burst of small events doesn't skip through many
+    // issues — a step only fires once the accumulator crosses
+    // WHEEL_STEP_PX, then a short cooldown blocks the next step until the
+    // current card has visibly settled. The accumulator itself resets
+    // after any pause longer than WHEEL_GESTURE_IDLE_MS, so a fresh
+    // gesture always starts from zero rather than carrying over residue
+    // from the last one. At either end of the list, or with 0-1 issues,
+    // the event is left alone so the page's own scroll takes over.
+    stage?.addEventListener(
+      "wheel",
+      (e) => {
+        if (e.ctrlKey) return; // pinch-zoom — never intercepted
+        if (list.length <= 1) return;
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        const dir = delta > 0 ? 1 : -1;
+        const atStart = selectedIndex <= 0 && dir < 0;
+        const atEnd = selectedIndex >= list.length - 1 && dir > 0;
+        if (atStart || atEnd) return; // let normal page scroll continue past the collection
+
+        e.preventDefault();
+        if (wheelLocked) return;
+
+        window.clearTimeout(wheelIdleTimer);
+        wheelIdleTimer = window.setTimeout(() => {
+          wheelAccum = 0;
+        }, WHEEL_GESTURE_IDLE_MS);
+
+        wheelAccum += delta;
+        if (Math.abs(wheelAccum) >= WHEEL_STEP_PX) {
+          wheelAccum = 0;
+          wheelLocked = true;
+          selectByOffset(dir);
+          window.setTimeout(() => {
+            wheelLocked = false;
+          }, WHEEL_STEP_COOLDOWN_MS);
+        }
+      },
+      { passive: false, signal },
+    );
+
     // Click vs. drag: a pointerdown/up pair that moved less than the
     // threshold is a click (select a neighbor, or open the centered one);
     // past the threshold it's a swipe and never opens anything, so a drag
@@ -376,5 +445,8 @@ export function renderDreamArchive(root: HTMLElement): () => void {
   }
 
   load();
-  return () => {};
+  return () => {
+    controller.abort();
+    window.clearTimeout(wheelIdleTimer);
+  };
 }
