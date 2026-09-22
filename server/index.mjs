@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { buildPrompt } from "./prompt-builder.mjs";
 import { createRun, upsertScene, listRuns, getRun, saveZine, deleteRun } from "./store.mjs";
-import { exportRunToPdf } from "./pdf-export.mjs";
+import { exportRunToPdf, exportRunToSpreadPdf } from "./pdf-export.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_DIR = join(__dirname, "generated");
@@ -232,6 +232,27 @@ const server = createServer(async (req, res) => {
         pdfUrl: result.pdfUrl,
         pageCount: result.pageCount,
         exportedAt: new Date().toISOString(),
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ...result, run: updated }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: String(err?.message ?? err) }));
+    }
+    return;
+  }
+
+  // Zine: export the 9-canvas reading-spread PDF, for on-screen viewing
+  const spreadExportMatch = url.pathname.match(/^\/api\/runs\/([\w-]+)\/export-spread-pdf$/);
+  if (spreadExportMatch && req.method === "POST") {
+    try {
+      const run = await getRun(spreadExportMatch[1]);
+      if (!run) throw new Error("run not found");
+      const result = await exportRunToSpreadPdf(run, run.issueNumber);
+      const updated = await saveZine(spreadExportMatch[1], {
+        spreadPdfUrl: result.pdfUrl,
+        spreadPageCount: result.pageCount,
+        spreadExportedAt: new Date().toISOString(),
       });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ...result, run: updated }));

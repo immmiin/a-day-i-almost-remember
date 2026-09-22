@@ -1,6 +1,6 @@
 import { buildDreamNav } from "./dream-nav";
 import { escapeHtml, shortCaption } from "./util";
-import { getRun, saveZinePages, exportPdf, absoluteUrl, type RunDetail, type ZinePageEntry, type SavedScene } from "./dream-api";
+import { getRun, saveZinePages, exportPdf, exportSpreadPdf, absoluteUrl, type RunDetail, type ZinePageEntry, type SavedScene } from "./dream-api";
 import { renderCoverFace, resolveCoverConfig, type CoverConfig } from "./zine-cover";
 
 const CONTENT_SLOTS = 14; // pages 2-15; page 1 and 16 are auto covers
@@ -27,13 +27,17 @@ export function renderZineStudio(root: HTMLElement): () => void {
   let focusIndex = 0;
   let chooserSlot: number | null = null;
   let dragFrom: number | null = null;
-  let exportResult: { pdfUrl: string; lowResWarnings: string[] } | null = null;
-  let exporting = false;
+  let exportResult: { pdfUrl: string; lowResWarnings: string[]; kind: "pages" | "spreads" } | null = null;
+  let exporting: "pages" | "spreads" | null = null;
   let saveNote = "";
   // 1 = the page preview exactly fills its frame (the "Fit entire page by
   // default" requirement) — zoom is a separate, purely visual magnifier on
   // top of that, never the default state.
   let zoom = 1;
+  // "spread" shows the exact facing-page pairing the spread PDF exports
+  // (2-3, 4-5, ... 14-15) on one canvas, the same reading pairing, not a
+  // printer-imposition pairing.
+  let previewMode: "single" | "spread" = "single";
 
   function paintIntroState(kind: "no-run" | "not-found" | "no-scenes"): void {
     section.innerHTML = `
@@ -95,27 +99,93 @@ export function renderZineStudio(root: HTMLElement): () => void {
 
   // Mirrors server/pdf-export.mjs's actual drawing math (margins as a % of
   // the A5 page, the caption band's 74pt height, text-led's capped image
-  // box) so the editor preview and the exported PDF genuinely agree on
-  // crop, text placement, and margins rather than approximating it twice.
+  // box) so the editor preview and both exported PDFs genuinely agree on
+  // crop, text placement, and margins rather than approximating it thrice.
+  function pageInnerMarkup(entry: ZinePageEntry, scene: SavedScene): string {
+    const mode = entry.imageMode === "fit" ? "fit" : "fill";
+    const fx = entry.focalX ?? 50;
+    const fy = entry.focalY ?? 50;
+    const captionText = entry.caption ?? shortCaption(scene.prompt);
+    const imgUrl = absoluteUrl(scene.imageUrl);
+    if (entry.layout === "text-led") {
+      return `
+        <div class="zine-studio__page-textled-cap">${escapeHtml(captionText)}</div>
+        <div class="zine-studio__page-textled-imgwrap"><img src="${imgUrl}" alt="" /></div>`;
+    }
+    return `
+      <img class="zine-studio__page-img" src="${imgUrl}" alt=""
+        style="object-fit:${mode === "fit" ? "contain" : "cover"};object-position:${fx}% ${fy}%;" />
+      ${entry.layout === "image-caption" ? `<div class="zine-studio__page-caption-band"><p>${escapeHtml(captionText)}</p></div>` : ""}`;
+  }
+
+  function previewModeToggle(): string {
+    return `<div class="zine-studio__segmented" role="group" aria-label="Preview mode">
+      <button type="button" class="zine-studio__tool zine-studio__tool--small${previewMode === "single" ? " is-active" : ""}" data-preview-mode="single" aria-pressed="${previewMode === "single"}">Single page</button>
+      <button type="button" class="zine-studio__tool zine-studio__tool--small${previewMode === "spread" ? " is-active" : ""}" data-preview-mode="spread" aria-pressed="${previewMode === "spread"}">Spread</button>
+    </div>`;
+  }
+
+  function zoomControls(): string {
+    return `<div class="zine-studio__zoom" role="group" aria-label="Preview zoom">
+      <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+      <span class="zine-studio__zoom-value">${Math.round(zoom * 100)}%</span>
+      <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+      <button type="button" id="zoom-reset" class="zine-studio__tool zine-studio__tool--small">Fit</button>
+    </div>`;
+  }
+
   function renderPagePreview(focused: ZinePageEntry, focusedScene: SavedScene): string {
     const mode = focused.imageMode === "fit" ? "fit" : "fill";
-    const fx = focused.focalX ?? 50;
-    const fy = focused.focalY ?? 50;
     const isTextLed = focused.layout === "text-led";
     const isImageOnly = focused.layout === "full";
     const captionText = focused.caption ?? shortCaption(focusedScene.prompt);
-    const imgUrl = absoluteUrl(focusedScene.imageUrl);
+    const fx = focused.focalX ?? 50;
+    const fy = focused.focalY ?? 50;
 
-    const pageInner = isTextLed
-      ? `
-        <div class="zine-studio__page-textled-cap">${escapeHtml(captionText)}</div>
-        <div class="zine-studio__page-textled-imgwrap"><img src="${imgUrl}" alt="" /></div>`
-      : `
-        <img class="zine-studio__page-img" src="${imgUrl}" alt=""
-          style="object-fit:${mode === "fit" ? "contain" : "cover"};object-position:${fx}% ${fy}%;" />
-        ${focused.layout === "image-caption" ? `<div class="zine-studio__page-caption-band"><p>${escapeHtml(captionText)}</p></div>` : ""}`;
+    if (previewMode === "spread") {
+      // Same facing-page pairing the spread PDF exports: 2-3, 4-5, ... 14-15
+      // — never 1-2, never a printer-imposition pair.
+      const pairStart = focusIndex - (focusIndex % 2);
+      const leftEntry = pages[pairStart];
+      const rightEntry = pages[pairStart + 1];
+      const leftScene = leftEntry ? sceneFor(leftEntry.sceneIndex) : null;
+      const rightScene = rightEntry ? sceneFor(rightEntry.sceneIndex) : null;
+      return `
+        <div class="zine-studio__preview-toolbar">
+          ${previewModeToggle()}
+          ${zoomControls()}
+        </div>
+        <div class="zine-studio__preview-frame">
+          <div class="zine-studio__spread-page" style="transform:scale(${zoom});">
+            <button type="button" class="zine-studio__spread-half${pairStart === focusIndex ? " is-focused" : ""}" data-focus="${pairStart}">
+              ${leftEntry && leftScene ? pageInnerMarkup(leftEntry, leftScene) : `<span class="zine-studio__spread-empty">page ${pairStart + 2} — empty</span>`}
+            </button>
+            <button type="button" class="zine-studio__spread-half${pairStart + 1 === focusIndex ? " is-focused" : ""}" data-focus="${pairStart + 1}">
+              ${rightEntry && rightScene ? pageInnerMarkup(rightEntry, rightScene) : `<span class="zine-studio__spread-empty">page ${pairStart + 3} — empty</span>`}
+            </button>
+          </div>
+        </div>
+        <p class="zine-studio__hint">Pages ${pairStart + 2}–${pairStart + 3} as they'll face each other in "Export spreads." Click a half to edit its caption and crop below.</p>
+        ${
+          !isTextLed && mode === "fill"
+            ? `<div class="zine-studio__crop-controls">
+                <label>crop — horizontal <input type="range" id="page-focal-x" min="0" max="100" value="${fx}" /></label>
+                <label>crop — vertical <input type="range" id="page-focal-y" min="0" max="100" value="${fy}" /></label>
+              </div>`
+            : ""
+        }
+        <label class="zine-studio__caption-edit">
+          caption for page ${focusIndex + 2}
+          ${isImageOnly ? `<span class="zine-studio__caption-hidden-note">saved, but hidden on the page — it's set to Image only</span>` : ""}
+          <textarea id="caption-edit" rows="2">${escapeHtml(captionText ?? "")}</textarea>
+        </label>
+      `;
+    }
 
     return `
+      <div class="zine-studio__preview-toolbar">
+        ${previewModeToggle()}
+      </div>
       <div class="zine-studio__preview-toolbar">
         ${
           isTextLed
@@ -125,16 +195,11 @@ export function renderZineStudio(root: HTMLElement): () => void {
                 <button type="button" class="zine-studio__tool zine-studio__tool--small${mode === "fit" ? " is-active" : ""}" data-image-mode="fit" aria-pressed="${mode === "fit"}">Fit</button>
               </div>`
         }
-        <div class="zine-studio__zoom" role="group" aria-label="Preview zoom">
-          <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
-          <span class="zine-studio__zoom-value">${Math.round(zoom * 100)}%</span>
-          <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
-          <button type="button" id="zoom-reset" class="zine-studio__tool zine-studio__tool--small">Fit</button>
-        </div>
+        ${zoomControls()}
       </div>
       <div class="zine-studio__preview-frame">
         <div class="zine-studio__preview-page" style="transform:scale(${zoom});">
-          ${pageInner}
+          ${pageInnerMarkup(focused, focusedScene)}
         </div>
       </div>
       ${
@@ -335,24 +400,33 @@ export function renderZineStudio(root: HTMLElement): () => void {
         <div class="zine-studio__footer-actions">
           <button type="button" class="zine-studio__tool" id="save-draft">Save draft</button>
           <button type="button" class="zine-studio__export" id="export-pdf" ${filledCount === 0 || exporting ? "disabled" : ""}>
-            ${exporting ? "Exporting…" : "Export PDF"}
+            ${exporting === "pages" ? "Exporting…" : "Export pages — for printing"}
+          </button>
+          <button type="button" class="zine-studio__export zine-studio__export--secondary" id="export-spread-pdf" ${filledCount === 0 || exporting ? "disabled" : ""}>
+            ${exporting === "spreads" ? "Exporting…" : "Export spreads — for viewing"}
           </button>
         </div>
       </footer>
       ${
         exportResult
           ? `<div class="zine-studio__result">
-               <a href="${absoluteUrl(exportResult.pdfUrl)}" target="_blank" rel="noopener">Open exported PDF →</a>
+               <a href="${absoluteUrl(exportResult.pdfUrl)}" target="_blank" rel="noopener">
+                 Open exported ${exportResult.kind === "spreads" ? "spread PDF (9 canvases)" : "PDF (16 pages)"} →
+               </a>
                ${exportResult.lowResWarnings.length ? `<ul class="zine-studio__warning-list">${exportResult.lowResWarnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>` : ""}
              </div>`
           : ""
       }
       <p class="zine-studio__print-note">
-        Print note: four A4 sheets, printed double-sided and folded, produce this 16-page A5 booklet.
-        This export is reading order, not printer imposition — most copy-shop "booklet" print settings
-        reorder pages for folding automatically from a reading-order PDF like this one. Leave standard
-        printer margins; this layout isn't bled to the trim edge, so no separate trimming is needed for
-        a basic home/copy-shop print.
+        <b>Export pages — for printing:</b> 16 individual A5 pages, four A4 sheets printed
+        double-sided and folded. Reading order, not printer imposition — most copy-shop "booklet"
+        settings reorder pages for folding automatically from a file like this one. Standard printer
+        margins; not bled to the trim edge, so no separate trimming is needed.
+      </p>
+      <p class="zine-studio__print-note">
+        <b>Export spreads — for viewing:</b> 9 canvases — the front cover alone, seven facing-page
+        spreads (296×210mm each), and the back cover alone — for reading on screen the way the
+        issue is laid out, not for printing.
       </p>
     `;
 
@@ -433,10 +507,25 @@ export function renderZineStudio(root: HTMLElement): () => void {
       });
     });
 
-    section.querySelectorAll<HTMLElement>("[data-focus]").forEach((row) => {
+    section.querySelectorAll<HTMLElement>(".zine-studio__page-row[data-focus]").forEach((row) => {
       row.addEventListener("click", (e) => {
         if ((e.target as HTMLElement).closest("select, button")) return;
         focusIndex = Number(row.dataset.focus);
+        zoom = 1;
+        render();
+      });
+    });
+
+    section.querySelectorAll<HTMLButtonElement>(".zine-studio__spread-half[data-focus]").forEach((half) => {
+      half.addEventListener("click", () => {
+        focusIndex = Number(half.dataset.focus);
+        render();
+      });
+    });
+
+    section.querySelectorAll<HTMLButtonElement>("[data-preview-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        previewMode = btn.dataset.previewMode as "single" | "spread";
         zoom = 1;
         render();
       });
@@ -522,7 +611,8 @@ export function renderZineStudio(root: HTMLElement): () => void {
     });
 
     function applyPageFocalLive(): void {
-      const img = section.querySelector<HTMLImageElement>(".zine-studio__page-img");
+      const scope = previewMode === "spread" ? `.zine-studio__spread-half[data-focus="${focusIndex}"] ` : "";
+      const img = section.querySelector<HTMLImageElement>(`${scope}.zine-studio__page-img`);
       const p = pages[focusIndex];
       if (img && p) img.style.objectPosition = `${p.focalX ?? 50}% ${p.focalY ?? 50}%`;
     }
@@ -538,7 +628,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     });
 
     function applyZoomLive(): void {
-      const el = section.querySelector<HTMLElement>(".zine-studio__preview-page");
+      const el = section.querySelector<HTMLElement>(".zine-studio__preview-page, .zine-studio__spread-page");
       if (el) el.style.transform = `scale(${zoom})`;
       const label = section.querySelector<HTMLElement>(".zine-studio__zoom-value");
       if (label) label.textContent = `${Math.round(zoom * 100)}%`;
@@ -566,15 +656,30 @@ export function renderZineStudio(root: HTMLElement): () => void {
     });
 
     section.querySelector<HTMLButtonElement>("#export-pdf")!.addEventListener("click", async () => {
-      exporting = true;
+      exporting = "pages";
       render();
       await saveZinePages(run!.id, title, pages, cover);
       try {
-        exportResult = await exportPdf(run!.id);
+        const result = await exportPdf(run!.id);
+        exportResult = { ...result, kind: "pages" };
       } catch (err) {
-        exportResult = { pdfUrl: "", lowResWarnings: [`Export failed: ${(err as Error).message}`] };
+        exportResult = { pdfUrl: "", lowResWarnings: [`Export failed: ${(err as Error).message}`], kind: "pages" };
       }
-      exporting = false;
+      exporting = null;
+      render();
+    });
+
+    section.querySelector<HTMLButtonElement>("#export-spread-pdf")!.addEventListener("click", async () => {
+      exporting = "spreads";
+      render();
+      await saveZinePages(run!.id, title, pages, cover);
+      try {
+        const result = await exportSpreadPdf(run!.id);
+        exportResult = { ...result, kind: "spreads" };
+      } catch (err) {
+        exportResult = { pdfUrl: "", lowResWarnings: [`Export failed: ${(err as Error).message}`], kind: "spreads" };
+      }
+      exporting = null;
       render();
     });
   }

@@ -119,18 +119,22 @@ export class DreamRunClient {
  * What a scene actually sends the local generator — the restriction boundary
  * in data form.
  *
- * Only two of the four distortion axes describe something a camera could
- * actually show: `material` (an object made of something else) and `scale`
- * (an object the wrong size). `role` and `meaning` describe abstract,
- * non-visual changes — "its role used to be object, now it is person" or a
- * narrative clause like "it has started watching me back" — and feeding
- * those straight into an image prompt as "the impossible detail" asks the
- * model to render something that isn't a picture of anything, so it quietly
- * falls back to the ordinary base scene. Confirmed empirically: a generation
- * whose distortion was a `meaning` change came back as a plain, undistorted
- * room. For those two axes, distortionNote is left undefined so the prompt
- * builder substitutes one of its own concrete, camera-ready scenarios
- * instead of trying to visualize prose.
+ * Only `material` distortions synthesize their own prompt sentence here.
+ * `role` and `meaning` describe abstract, non-visual changes — "its role
+ * used to be object, now it is person" or a narrative clause like "it has
+ * started watching me back" — and feeding those straight into an image
+ * prompt as "the impossible detail" asks the model to render something
+ * that isn't a picture of anything, so it quietly falls back to the
+ * ordinary base scene (confirmed empirically). `scale` distortions turned
+ * out to have the same problem for a different reason: the scale pool's
+ * before/after values are sometimes too close together for a given object
+ * to read as a size contradiction at all — a real submitted prompt once
+ * asked for a ceiling fan to go from "room-sized" to "life-sized", which
+ * is barely a change for furniture already roughly that scale, and the
+ * result came back as an ordinary, undistorted room. For both of those
+ * axes, distortionNote is left undefined so the prompt builder substitutes
+ * one of its own hand-authored, unmistakably legible scenarios instead of
+ * trying to visualize a combination it can't quality-control.
  */
 export function fragmentsForGeneration(scene: Scene): {
   rememberedFragments: string[];
@@ -146,9 +150,7 @@ export function fragmentsForGeneration(scene: Scene): {
   let distortionNote: string | undefined;
   if (distorted && changedFragment) {
     if (distorted.axis === "material") {
-      distortionNote = `${changedFragment.label}, but now made of ${distorted.after} instead of ${distorted.before}, otherwise unchanged and sitting exactly where it always does, its new material clearly visible in the photograph.`;
-    } else if (distorted.axis === "scale") {
-      distortionNote = `${changedFragment.label}, but now ${distorted.after} instead of ${distorted.before}, dramatically out of proportion with the ordinary room around it, the size difference clearly visible in a wide photograph.`;
+      distortionNote = `${changedFragment.label} has become entirely ${distorted.after} instead of ${distorted.before}, its new texture and the way light catches it clearly visible, sitting exactly where it always does among the ordinary furniture around it.`;
     }
   }
   return { rememberedFragments, distortionNote };

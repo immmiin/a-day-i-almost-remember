@@ -15,7 +15,13 @@ function shortCaption(prompt) {
   return parts[1]?.trim() || parts[0]?.trim() || prompt || "";
 }
 
-// A5 portrait in points (1pt = 1/72in; A5 = 148 x 210mm).
+// A5 portrait in points (1pt = 1/72in; A5 = 148 x 210mm). A spread canvas is
+// simply two of these placed side by side (296 x 210mm) — every content-page
+// drawing routine below takes an `xOffset` so the exact same code draws a
+// standalone A5 page (offset 0 on a PAGE_W-wide canvas) or either half of a
+// spread (offset 0 or PAGE_W on a PAGE_W*2-wide canvas). That's what
+// guarantees the two export formats agree on crop, text, and margins —
+// there is only one drawing implementation, not two kept in sync by hand.
 const PAGE_W = 419.53;
 const PAGE_H = 595.28;
 const MARGIN = 30; // ~10.6mm — inside the 10-12mm print-safe band asked for
@@ -27,30 +33,29 @@ function pxNeededFor(mmSize, dpi = MIN_PRINT_DPI) {
 }
 const MIN_FULLBLEED_PX = { w: pxNeededFor(148), h: pxNeededFor(210) };
 
-// Emulates CSS `object-fit: cover` + `object-position: focalX% focalY%`:
-// scales the image to cover the page, then shifts it so the chosen focal
-// point (0-100 on each axis, CSS convention — 0,0 is top-left) stays inside
-// the crop window instead of always cropping symmetrically from center.
-function drawFullBleedFocal(page, img, focalXPct = 50, focalYPct = 50) {
+// Emulates CSS `object-fit: cover` + `object-position: focalX% focalY%`,
+// drawn into a PAGE_W-wide slot starting at xOffset on whatever canvas the
+// page actually is.
+function drawFullBleedFocalAt(page, xOffset, img, focalXPct = 50, focalYPct = 50) {
   const scale = Math.max(PAGE_W / img.width, PAGE_H / img.height);
   const drawW = img.width * scale;
   const drawH = img.height * scale;
   const excessX = Math.max(0, drawW - PAGE_W);
   const excessY = Math.max(0, drawH - PAGE_H);
-  const x = -(focalXPct / 100) * excessX;
+  const x = xOffset - (focalXPct / 100) * excessX;
   // pdf-lib's y axis runs bottom-up, CSS's runs top-down, hence the flip.
   const y = PAGE_H + (focalYPct / 100) * excessY - drawH;
   page.drawImage(img, { x, y, width: drawW, height: drawH });
 }
 
 // Emulates CSS `object-fit: contain`: the whole image is visible, never
-// cropped, letterboxed on a paper-tint background instead of stretched.
-function drawFitContained(page, img) {
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
+// cropped or stretched, letterboxed on a paper-tint background.
+function drawFitContainedAt(page, xOffset, img) {
+  page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
   const scale = Math.min(PAGE_W / img.width, PAGE_H / img.height);
   const w = img.width * scale;
   const h = img.height * scale;
-  page.drawImage(img, { x: (PAGE_W - w) / 2, y: (PAGE_H - h) / 2, width: w, height: h });
+  page.drawImage(img, { x: xOffset + (PAGE_W - w) / 2, y: (PAGE_H - h) / 2, width: w, height: h });
 }
 
 async function embedSceneImage(doc, run, sceneIndex) {
@@ -94,12 +99,106 @@ function wrapLines(font, text, size, maxWidth, maxLines) {
   return lines;
 }
 
+/**
+ * Draws one content page's full logic — image fit/fill/crop, caption or
+ * text-led layout, page number — onto `page` starting at `xOffset`. Used
+ * identically by both the single-page export (xOffset always 0, one page
+ * per canvas) and the spread export (xOffset 0 or PAGE_W, two pages per
+ * canvas), so "image only" pages, crops, and margins can't drift apart
+ * between the two formats.
+ */
+async function drawContentPage(doc, page, xOffset, entry, run, fonts, pageNumber) {
+  const { sans, sansItalic } = fonts;
+  if (!entry) {
+    page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(1, 1, 1) });
+    return null;
+  }
+  const scene = run.scenes.find((s) => s.index === entry.sceneIndex);
+  if (!scene) return null;
+
+  const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
+  const bytes = await readFile(imgPath);
+  const img = await doc.embedPng(bytes);
+
+  let lowResWarning = null;
+  if (img.width < MIN_FULLBLEED_PX.w || img.height < MIN_FULLBLEED_PX.h) {
+    lowResWarning = `Page ${pageNumber}: source image is ${img.width}x${img.height}px, below the ~${MIN_FULLBLEED_PX.w}x${MIN_FULLBLEED_PX.h}px a true full-bleed A5 print wants at 300dpi.`;
+  }
+
+  // "Image only" means exactly that — no caption, no page number, no
+  // metadata of any kind gets drawn on this page. Checked first so nothing
+  // below can accidentally add text to it, in either export format.
+  const imageOnly = entry.layout === "full";
+
+  if (entry.layout === "text-led") {
+    page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
+    const caption = entry.caption || shortCaption(scene.prompt);
+    page.drawText(caption, {
+      x: xOffset + MARGIN,
+      y: PAGE_H - 100,
+      size: 13,
+      font: sansItalic,
+      color: rgb(0.14, 0.1, 0.15),
+      maxWidth: PAGE_W - MARGIN * 2,
+      lineHeight: 18,
+    });
+    const imgW = PAGE_W - MARGIN * 2;
+    const imgH = imgW * (img.height / img.width);
+    page.drawImage(img, { x: xOffset + MARGIN, y: MARGIN, width: imgW, height: Math.min(imgH, 260) });
+  } else if (entry.imageMode === "fit") {
+    drawFitContainedAt(page, xOffset, img);
+    if (entry.layout === "image-caption") {
+      const caption = entry.caption || shortCaption(scene.prompt);
+      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
+      page.drawText(caption, {
+        x: xOffset + MARGIN,
+        y: 48,
+        size: 10,
+        lineHeight: 13,
+        font: sansItalic,
+        color: rgb(1, 1, 1),
+        maxWidth: PAGE_W - MARGIN * 2,
+      });
+    }
+  } else {
+    // full-bleed cover-crop: image fills the slot, caption (if any) overlays near the bottom
+    const fx = typeof entry.focalX === "number" ? entry.focalX : 50;
+    const fy = typeof entry.focalY === "number" ? entry.focalY : 50;
+    drawFullBleedFocalAt(page, xOffset, img, fx, fy);
+    if (entry.layout === "image-caption") {
+      const caption = entry.caption || shortCaption(scene.prompt);
+      page.drawRectangle({ x: xOffset, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
+      page.drawText(caption, {
+        x: xOffset + MARGIN,
+        y: 48,
+        size: 10,
+        lineHeight: 13,
+        font: sansItalic,
+        color: rgb(1, 1, 1),
+        maxWidth: PAGE_W - MARGIN * 2,
+      });
+    }
+  }
+
+  if (!imageOnly) {
+    page.drawText(String(pageNumber), {
+      x: xOffset + PAGE_W - MARGIN - 10,
+      y: 12,
+      size: 8,
+      font: sans,
+      color: rgb(0.4, 0.35, 0.37),
+    });
+  }
+  return lowResWarning;
+}
+
 // The front and back covers share one typographic lockup (masthead +
 // metadata) at the same position/scale on every issue — that repetition,
 // not any single cover's imagery, is what makes a stack of these read as
 // one ongoing publication rather than unrelated one-off prints. Each text
 // cluster sits on a content-sized chip, not a full-width wash, so the
-// photograph stays the dominant element.
+// photograph stays the dominant element. Covers are always drawn on their
+// own single A5 canvas in both export formats — never paired into a spread.
 async function drawCoverFace(doc, run, issueNumber, fonts) {
   const { serifBold, serif, sans, sansItalic } = fonts;
   const page = doc.addPage([PAGE_W, PAGE_H]);
@@ -112,7 +211,7 @@ async function drawCoverFace(doc, run, issueNumber, fonts) {
 
   page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
   const img = await embedSceneImage(doc, run, sceneIndex);
-  if (img) drawFullBleedFocal(page, img, focalX, focalY);
+  if (img) drawFullBleedFocalAt(page, 0, img, focalX, focalY);
   if (!showText) return;
 
   const chipColor = contrast === "paper" ? rgb(0.945, 0.914, 0.863) : rgb(0.14, 0.1, 0.15);
@@ -121,7 +220,6 @@ async function drawCoverFace(doc, run, issueNumber, fonts) {
   const chipPad = 6;
   const chip = (x, y, w, h) => page.drawRectangle({ x: x - chipPad, y: y - 4, width: w + chipPad * 2, height: h + 8, color: chipColor, opacity: 0.66 });
 
-  // Masthead cluster (dominant) — top-left, own chip.
   const masthead = "A Day I Almost Remember";
   const mastSize = 22;
   const metaSize = 7.5;
@@ -133,7 +231,6 @@ async function drawCoverFace(doc, run, issueNumber, fonts) {
   page.drawText(masthead, { x: MARGIN, y: mastTop - mastSize, size: mastSize, font: serifBold, color: textColor, maxWidth: PAGE_W - MARGIN * 2 });
   page.drawText(meta, { x: MARGIN, y: mastTop - mastSize - metaSize - 8, size: metaSize, font: sans, color: mutedColor });
 
-  // Title cluster (noticeably smaller than the masthead) — bottom-left, own chip.
   const titleSize = 13.5;
   const title = (cover.title || run.zine?.title || run.seedText || "Untitled issue").trim();
   const titleLines = wrapLines(serif, title, titleSize, PAGE_W - MARGIN * 2 - chipPad * 2, 2);
@@ -156,149 +253,105 @@ async function drawCoverFace(doc, run, issueNumber, fonts) {
   }
 }
 
-export async function exportRunToPdf(run, issueNumber = 1) {
-  await mkdir(PDF_DIR, { recursive: true });
-  const doc = await PDFDocument.create();
+function drawBackCoverFace(doc, run, issueNumber, fonts, pages) {
+  const { serifBold, sans } = fonts;
+  const page = doc.addPage([PAGE_W, PAGE_H]);
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
+  const backShowText = (run.zine?.cover?.backShowText ?? true) !== false;
+  if (backShowText) {
+    page.drawText("A Day I Almost Remember", {
+      x: MARGIN,
+      y: PAGE_H / 2 + 30,
+      size: 13,
+      font: serifBold,
+      color: rgb(0.96, 0.93, 0.87),
+    });
+    page.drawText(`issue ${issueNumber} · a procedural memory`, {
+      x: MARGIN,
+      y: PAGE_H / 2 + 8,
+      size: 8,
+      font: sans,
+      color: rgb(0.8, 0.76, 0.72),
+    });
+    page.drawText(`${run.scenes.length} scenes generated locally, ${pages.filter(Boolean).length} selected for this issue.`, {
+      x: MARGIN,
+      y: PAGE_H / 2 - 16,
+      size: 8,
+      font: sans,
+      color: rgb(0.8, 0.76, 0.72),
+      maxWidth: PAGE_W - MARGIN * 2,
+    });
+  }
+}
+
+async function embedFonts(doc) {
   // One display serif (masthead/titles) + one supporting sans (metadata/
-  // captions) — the earlier version used Helvetica-Oblique as its "serif",
+  // captions) — an earlier version used Helvetica-Oblique as its "serif",
   // which is actually sans-serif italic and not a serif at all.
   const serifBold = await doc.embedFont(StandardFonts.TimesRomanBold);
   const serif = await doc.embedFont(StandardFonts.TimesRoman);
   const sans = await doc.embedFont(StandardFonts.Helvetica);
   const sansItalic = await doc.embedFont(StandardFonts.HelveticaOblique);
-  const fonts = { serifBold, serif, sans, sansItalic };
+  return { serifBold, serif, sans, sansItalic };
+}
 
-  const pages = run.zine?.pages ?? [];
-  const lowResWarnings = [];
-
-  // Page 1: front cover
-  await drawCoverFace(doc, run, issueNumber, fonts);
-
-  // Pages 2-15: up to 14 content pages, in the order the user arranged them
-  for (let i = 0; i < 14; i++) {
-    const page = doc.addPage([PAGE_W, PAGE_H]);
-    const entry = pages[i];
-    if (!entry) {
-      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(1, 1, 1) });
-      continue;
-    }
-    const scene = run.scenes.find((s) => s.index === entry.sceneIndex);
-    if (!scene) continue;
-
-    const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
-    const bytes = await readFile(imgPath);
-    const img = await doc.embedPng(bytes);
-
-    if (img.width < MIN_FULLBLEED_PX.w || img.height < MIN_FULLBLEED_PX.h) {
-      lowResWarnings.push(
-        `Page ${i + 2}: source image is ${img.width}x${img.height}px, below the ~${MIN_FULLBLEED_PX.w}x${MIN_FULLBLEED_PX.h}px a true full-bleed A5 print wants at 300dpi.`,
-      );
-    }
-
-    // "Image only" means exactly that — no caption, no page number, no
-    // metadata of any kind gets drawn on this page. Checked first so
-    // nothing below can accidentally add text to it.
-    const imageOnly = entry.layout === "full";
-
-    if (entry.layout === "text-led") {
-      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: PAPER_TINT });
-      const caption = entry.caption || shortCaption(scene.prompt);
-      page.drawText(caption, {
-        x: MARGIN,
-        y: PAGE_H - 100,
-        size: 13,
-        font: sansItalic,
-        color: rgb(0.14, 0.1, 0.15),
-        maxWidth: PAGE_W - MARGIN * 2,
-        lineHeight: 18,
-      });
-      const imgW = PAGE_W - MARGIN * 2;
-      const imgH = imgW * (img.height / img.width);
-      page.drawImage(img, { x: MARGIN, y: MARGIN, width: imgW, height: Math.min(imgH, 260) });
-    } else if (entry.imageMode === "fit") {
-      drawFitContained(page, img);
-      if (entry.layout === "image-caption") {
-        const caption = entry.caption || shortCaption(scene.prompt);
-        page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
-        page.drawText(caption, {
-          x: MARGIN,
-          y: 48,
-          size: 10,
-          lineHeight: 13,
-          font: sansItalic,
-          color: rgb(1, 1, 1),
-          maxWidth: PAGE_W - MARGIN * 2,
-        });
-      }
-    } else {
-      // full-bleed cover-crop: image fills the page, caption (if any) overlays near the bottom
-      const fx = typeof entry.focalX === "number" ? entry.focalX : 50;
-      const fy = typeof entry.focalY === "number" ? entry.focalY : 50;
-      drawFullBleedFocal(page, img, fx, fy);
-      if (entry.layout === "image-caption") {
-        const caption = entry.caption || shortCaption(scene.prompt);
-        page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 74, color: rgb(0, 0, 0), opacity: 0.5 });
-        page.drawText(caption, {
-          x: MARGIN,
-          y: 48,
-          size: 10,
-          lineHeight: 13,
-          font: sansItalic,
-          color: rgb(1, 1, 1),
-          maxWidth: PAGE_W - MARGIN * 2,
-        });
-      }
-    }
-
-    if (!imageOnly) {
-      page.drawText(String(i + 2), {
-        x: PAGE_W - MARGIN - 10,
-        y: 12,
-        size: 8,
-        font: sans,
-        color: rgb(0.4, 0.35, 0.37),
-      });
-    }
-  }
-
-  // Page 16: back cover — same masthead lockup as the front cover, smaller
-  // and quieter, so the series reads as one publication front-to-back.
-  // Independently toggleable: an issue can ship with a textless back cover.
-  {
-    const page = doc.addPage([PAGE_W, PAGE_H]);
-    page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(0.14, 0.1, 0.15) });
-    const backShowText = (run.zine?.cover?.backShowText ?? true) !== false;
-    if (backShowText) {
-      page.drawText("A Day I Almost Remember", {
-        x: MARGIN,
-        y: PAGE_H / 2 + 30,
-        size: 13,
-        font: serifBold,
-        color: rgb(0.96, 0.93, 0.87),
-      });
-      page.drawText(`issue ${issueNumber} · a procedural memory`, {
-        x: MARGIN,
-        y: PAGE_H / 2 + 8,
-        size: 8,
-        font: sans,
-        color: rgb(0.8, 0.76, 0.72),
-      });
-      page.drawText(`${run.scenes.length} scenes generated locally, ${pages.filter(Boolean).length} selected for this issue.`, {
-        x: MARGIN,
-        y: PAGE_H / 2 - 16,
-        size: 8,
-        font: sans,
-        color: rgb(0.8, 0.76, 0.72),
-        maxWidth: PAGE_W - MARGIN * 2,
-      });
-    }
-  }
-
+async function savePdf(doc, run, suffix) {
+  await mkdir(PDF_DIR, { recursive: true });
   const pdfBytes = await doc.save();
-  const filename = `${run.id}.pdf`;
+  const filename = `${run.id}${suffix}.pdf`;
   const filePath = join(PDF_DIR, filename);
   const { writeFile } = await import("node:fs/promises");
   await writeFile(filePath, pdfBytes);
+  return `/pdfs/${filename}`;
+}
 
-  return { pdfUrl: `/pdfs/${filename}`, pageCount: 16, lowResWarnings };
+/** The 16-page single-A5-page-per-canvas export, for printing. */
+export async function exportRunToPdf(run, issueNumber = 1) {
+  const doc = await PDFDocument.create();
+  const fonts = await embedFonts(doc);
+  const pages = run.zine?.pages ?? [];
+  const lowResWarnings = [];
+
+  await drawCoverFace(doc, run, issueNumber, fonts);
+
+  for (let i = 0; i < 14; i++) {
+    const page = doc.addPage([PAGE_W, PAGE_H]);
+    const warning = await drawContentPage(doc, page, 0, pages[i], run, fonts, i + 2);
+    if (warning) lowResWarnings.push(warning);
+  }
+
+  drawBackCoverFace(doc, run, issueNumber, fonts, pages);
+
+  const pdfUrl = await savePdf(doc, run, "");
+  return { pdfUrl, pageCount: 16, lowResWarnings };
+}
+
+/**
+ * The 9-canvas reading-spread export, for on-screen viewing: the front and
+ * back covers stand alone at A5, and each pair of facing interior pages
+ * (2-3, 4-5, ... 14-15) is drawn onto one 296x210mm canvas — two physical
+ * A5 pages placed side by side, not just a PDF viewer's two-page display
+ * hint. Reuses drawContentPage() exactly, so crop, text visibility, and
+ * margins can never drift from the single-page export.
+ */
+export async function exportRunToSpreadPdf(run, issueNumber = 1) {
+  const doc = await PDFDocument.create();
+  const fonts = await embedFonts(doc);
+  const pages = run.zine?.pages ?? [];
+  const lowResWarnings = [];
+
+  await drawCoverFace(doc, run, issueNumber, fonts);
+
+  for (let pairStart = 0; pairStart < 14; pairStart += 2) {
+    const page = doc.addPage([PAGE_W * 2, PAGE_H]);
+    const wLeft = await drawContentPage(doc, page, 0, pages[pairStart], run, fonts, pairStart + 2);
+    const wRight = await drawContentPage(doc, page, PAGE_W, pages[pairStart + 1], run, fonts, pairStart + 3);
+    if (wLeft) lowResWarnings.push(wLeft);
+    if (wRight) lowResWarnings.push(wRight);
+  }
+
+  drawBackCoverFace(doc, run, issueNumber, fonts, pages);
+
+  const pdfUrl = await savePdf(doc, run, "-spreads");
+  return { pdfUrl, pageCount: 9, lowResWarnings };
 }

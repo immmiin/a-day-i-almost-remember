@@ -55,6 +55,9 @@ export interface RunDetail {
     pdfUrl?: string;
     pageCount?: number;
     exportedAt?: string;
+    spreadPdfUrl?: string;
+    spreadPageCount?: number;
+    spreadExportedAt?: string;
   } | null;
 }
 
@@ -121,5 +124,13 @@ export async function exportPdf(
 ): Promise<{ pdfUrl: string; pageCount: number; lowResWarnings: string[] }> {
   return json(
     await fetch(`${BACKEND}/api/runs/${runId}/export-pdf`, { method: "POST" }),
+  );
+}
+
+export async function exportSpreadPdf(
+  runId: string,
+): Promise<{ pdfUrl: string; pageCount: number; lowResWarnings: string[] }> {
+  return json(
+    await fetch(`${BACKEND}/api/runs/${runId}/export-spread-pdf`, { method: "POST" }),
   );
 }

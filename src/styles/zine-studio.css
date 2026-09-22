@@ -641,6 +641,55 @@
   display: block;
 }
 
+/* The spread canvas: two A5 slots side by side with no divider, shadow, or
+   gutter drawn between them — matching exactly what the spread PDF itself
+   contains, not a decorated preview of it. */
+.zine-studio__spread-page {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  aspect-ratio: 296 / 210;
+  display: flex;
+  overflow: hidden;
+  background: #f6f1e9;
+  box-shadow: 0 30px 60px -30px rgba(36, 26, 38, 0.5);
+  transform-origin: center center;
+  transition: transform 160ms var(--ease-out);
+}
+
+.zine-studio__spread-half {
+  position: relative;
+  flex: 1 1 50%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.zine-studio__spread-half.is-focused {
+  outline: 2px solid var(--dream-lilac-deep);
+  outline-offset: -2px;
+}
+
+.zine-studio__spread-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dream-ink-soft);
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--dream-ink) 5%, transparent),
+    color-mix(in srgb, var(--dream-ink) 5%, transparent) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
 .zine-studio__crop-controls {
   display: flex;
   flex-wrap: wrap;
@@ -704,6 +753,7 @@
 
 .zine-studio__footer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
 }
 
@@ -746,6 +796,15 @@
 .zine-studio__export:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.zine-studio__export--secondary {
+  background: none;
+  color: var(--dream-ink);
+}
+
+.zine-studio__export--secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--dream-ink) 10%, transparent);
 }
 
 .zine-studio__result {
