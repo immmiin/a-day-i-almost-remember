@@ -43,8 +43,8 @@ async function checkDrawThings() {
   }
 }
 
-async function generateImage({ timeOfDay, rememberedFragments, distortionNote, seed, width, height, steps }) {
-  const { prompt, negativePrompt } = buildPrompt({ timeOfDay, rememberedFragments, distortionNote });
+async function generateImage({ timeOfDay, seedText, rememberedFragments, distortionNote, seed, width, height, steps }) {
+  const { prompt, negativePrompt } = buildPrompt({ timeOfDay, seedText, rememberedFragments, distortionNote });
   const usedSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
 
   const dtRes = await fetch(`${DRAW_THINGS_URL}/sdapi/v1/txt2img`, {
@@ -99,6 +99,7 @@ const server = createServer(async (req, res) => {
       const rememberedFragments = Array.isArray(body.rememberedFragments) ? body.rememberedFragments : [];
       const result = await generateImage({
         timeOfDay: body.timeOfDay ?? "morning",
+        seedText: body.seedText,
         rememberedFragments,
         distortionNote: body.distortionNote,
         seed: body.seed,

@@ -82,6 +82,15 @@ export function renderDreamFiles(root: HTMLElement): () => void {
       e.preventDefault();
       beginFresh(input.value.trim() || DEFAULT_SEED_TEXT);
     });
+    // A <textarea> doesn't submit its form on Enter by default (that's
+    // input-only) — wire it explicitly so Enter submits and Shift+Enter
+    // still inserts a line break as usual.
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
     center.querySelector<HTMLButtonElement>("#seed-skip")!.addEventListener("click", () => {
       beginFresh(DEFAULT_SEED_TEXT);
     });

@@ -24,11 +24,17 @@ export function renderDreamMachine(root: HTMLElement): () => void {
   let client: DreamRunClient;
   const saved = new Map<number, SavedScene>();
   let index = 0;
+  // sceneState is a real state machine now: render() only ever displays it,
+  // never recomputes it — it used to be re-derived from saved.has(index) on
+  // every render() call, which clobbered "generating"/"error" back to
+  // "idle" the instant they were set. It's set explicitly at every
+  // transition: on navigating to a scene, and inside startGeneration().
   let sceneState: SceneState = "idle";
   let lastErrorReason: "not-connected" | "failed" | null = null;
   let saveNote = "";
   let abortController: AbortController | null = null;
   let ready = false;
+  let generationInFlight = false;
 
   async function init(): Promise<void> {
     if (resumeId) {
@@ -65,6 +71,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
       client = new DreamRunClient(seedText);
       await createRun(client.id, seedText, client.createdAt);
     }
+    sceneState = stateForIndex(index);
     ready = true;
     render();
   }
@@ -87,7 +94,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
           <div class="dream-machine__overlay-card">
             <div class="dream-machine__overlay-spinner" aria-hidden="true"></div>
             <p class="dream-machine__overlay-text">Generating locally…</p>
-            <p class="dream-machine__overlay-note">Real inference on this Mac — usually one to a few minutes.</p>
+            <p class="dream-machine__overlay-note">The dream is taking shape — usually one to a few minutes on this Mac.</p>
             <button type="button" class="dream-machine__btn" id="dm-cancel"><span class="dream-machine__btn-label">Cancel</span></button>
           </div>
         </div>`;
@@ -122,7 +129,6 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     if (!ready) return;
     const fragScene = ensureFragmentScene(index);
     const savedScene = saved.get(index);
-    sceneState = stateForIndex(index);
     const theme = STAGE_THEME[fragScene.timeOfDay] ?? STAGE_THEME.morning;
     applyStageTheme(section, theme);
 
@@ -134,13 +140,23 @@ export function renderDreamMachine(root: HTMLElement): () => void {
         ? client.seedText
         : "Not yet generated.";
 
+    const statusMessage =
+      sceneState === "generating"
+        ? "The dream is taking shape."
+        : sceneState === "generated"
+          ? "Scene generated."
+          : sceneState === "error"
+            ? "Generation failed."
+            : "";
+
     section.innerHTML = `
       <div class="dream-machine__meta">
         <span>scene ${index + 1} / ${DAY_SEQUENCE.length} · local generation</span>
         <span>${escapeHtml(fragScene.timeOfDay)}</span>
       </div>
+      <p class="visually-hidden" role="status" aria-live="polite">${escapeHtml(statusMessage)}</p>
       <div class="dream-machine__body">
-        <div class="dream-machine__main" data-orientation="portrait" data-busy="${sceneState !== "generated"}">
+        <div class="dream-machine__main" data-orientation="portrait" data-busy="${sceneState !== "generated"}" aria-busy="${sceneState === "generating"}">
           ${
             savedScene
               ? `<img class="dream-machine__main-img" src="${absoluteUrl(savedScene.imageUrl)}" alt="Locally generated scene image" />`
@@ -200,15 +216,24 @@ export function renderDreamMachine(root: HTMLElement): () => void {
             </div>
           </details>
           <div class="dream-machine__controls">
-            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-generate-main" ${sceneState === "generating" ? "disabled" : ""}>
-              <span class="dream-machine__btn-label">${savedScene ? "Regenerate this scene" : "Generate this scene"}</span>
+            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-generate-main" ${sceneState === "generating" ? "disabled aria-disabled=\"true\"" : ""} aria-busy="${sceneState === "generating"}">
+              <span class="dream-machine__btn-label">${
+                sceneState === "generating"
+                  ? "Generating locally…"
+                  : sceneState === "error"
+                    ? "Generation failed — Retry"
+                    : savedScene
+                      ? "Regenerate this scene"
+                      : "Generate this scene"
+              }</span>
             </button>
             <div class="dream-machine__row">
               <button type="button" class="dream-machine__btn" id="dm-save" ${savedScene ? "" : "disabled"}><span class="dream-machine__btn-label">${saveNote || "Save this one"}</span></button>
               <button type="button" class="dream-machine__btn" id="dm-continue" ${savedScene ? "" : "disabled"}>
-                <span class="dream-machine__btn-label">${isLast ? "Open Dream Archive" : "Continue →"}</span>
+                <span class="dream-machine__btn-label">${isLast ? "Open Dream Archive" : "Add another scene →"}</span>
               </button>
             </div>
+            ${saved.size > 0 ? `<a class="dream-machine__btn" href="#/zine?run=${encodeURIComponent(client.id)}">Back to Zine Studio</a>` : ""}
           </div>
           <p class="dream-machine__setup-note">
             Runs locally through Draw Things (FLUX.1 Kontext dev) — no cloud, no per-image cost. This
@@ -238,11 +263,18 @@ export function renderDreamMachine(root: HTMLElement): () => void {
         return;
       }
       index += 1;
+      sceneState = stateForIndex(index);
       render();
     });
   }
 
   async function startGeneration(): Promise<void> {
+    // In-flight lock: belt-and-suspenders alongside the disabled button
+    // attribute, so a rapid double-click (which can land before the
+    // synchronous render() below has actually disabled the DOM button)
+    // can never fire two requests for the same scene.
+    if (generationInFlight) return;
+    generationInFlight = true;
     const fragScene = ensureFragmentScene(index);
     const { rememberedFragments, distortionNote } = fragmentsForGeneration(fragScene);
     sceneState = "generating";
@@ -252,6 +284,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
       {
         timeOfDay: fragScene.timeOfDay,
         sceneIndex: index,
+        seedText: index === 0 ? client.seedText : undefined,
         rememberedFragments,
         distortionNote,
       },
@@ -280,6 +313,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     } else {
       sceneState = saved.has(index) ? "generated" : "idle";
     }
+    generationInFlight = false;
     render();
   }
 

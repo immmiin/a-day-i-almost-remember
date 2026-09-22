@@ -33,11 +33,44 @@
   font-style: italic;
   font-display: swap;
 }
+/* Dream Archive's own editorial register — a publication reading these
+   dreams back, not the tool generating them, so it earns a different
+   type voice than the rest of the site. */
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("/fonts/cormorant-garamond-400-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   /* type */
   --font-display: "Antic Didone", "Iowan Old Style", Georgia, serif;
   --font-body: "Schibsted Grotesk", -apple-system, "Segoe UI", sans-serif;
+  --font-archive-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-archive-mono: "DM Mono", ui-monospace, "SF Mono", monospace;
   --font-mono: "Fragment Mono", ui-monospace, "SF Mono", monospace;
 
   /* entry screen: art-book register, fixed regardless of theme */

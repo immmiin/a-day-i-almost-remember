@@ -22,6 +22,108 @@
   text-decoration: underline;
 }
 
+.zine-studio__intro {
+  position: relative;
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--dream-paper-ink);
+}
+
+.zine-studio__intro-texture {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(2px 2px at 15% 25%, color-mix(in srgb, var(--dream-lilac) 70%, transparent), transparent),
+    radial-gradient(2px 2px at 75% 15%, color-mix(in srgb, var(--dream-pink) 70%, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 45% 60%, color-mix(in srgb, var(--dream-blue) 70%, transparent), transparent),
+    radial-gradient(2px 2px at 85% 70%, color-mix(in srgb, var(--dream-mint) 70%, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 25% 80%, color-mix(in srgb, var(--dream-butter) 70%, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 60% 40%, color-mix(in srgb, var(--dream-lilac) 60%, transparent), transparent),
+    radial-gradient(38% 30% at 20% 20%, color-mix(in srgb, var(--dream-lilac) 20%, transparent), transparent 70%),
+    radial-gradient(34% 28% at 82% 78%, color-mix(in srgb, var(--dream-pink) 18%, transparent), transparent 70%);
+  filter: blur(0.3px);
+  animation: zine-intro-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes zine-intro-drift {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: scale(1.04) translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zine-studio__intro-texture {
+    animation: none;
+  }
+}
+
+.zine-studio__intro-card {
+  position: relative;
+  z-index: 1;
+  max-width: 30rem;
+  text-align: center;
+  padding: 2.5rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dream-paper) 82%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: grid;
+  gap: 1.1rem;
+  justify-items: center;
+}
+
+.zine-studio__intro-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  margin: 0;
+}
+
+.zine-studio__intro-body {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--dream-ink-soft);
+  margin: 0;
+}
+
+.zine-studio__intro-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.zine-studio__preview-placeholder {
+  aspect-ratio: 148 / 210;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, var(--dream-ink) 30%, transparent);
+  display: grid;
+  place-items: center;
+  gap: 0.9rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.zine-studio__preview-placeholder-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--dream-ink) 40%, transparent);
+}
+
+.zine-studio__preview-placeholder p {
+  font-size: 0.8rem;
+  color: var(--dream-ink-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .zine-studio__header {
   display: flex;
   justify-content: space-between;
@@ -266,6 +368,8 @@
 }
 
 .zine-studio__tool {
+  display: inline-block;
+  text-decoration: none;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 0.5em 0.9em;

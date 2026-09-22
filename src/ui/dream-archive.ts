@@ -89,8 +89,10 @@ export function renderDreamArchive(root: HTMLElement): () => void {
         <h3 class="dream-archive__card-title">${escapeHtml(r.zineTitle || r.seedText || "Untitled issue")}</h3>
         <p class="dream-archive__card-meta">${new Date(r.createdAt).toLocaleDateString()} · ${r.sceneCount} scene${r.sceneCount === 1 ? "" : "s"}</p>
         <div class="dream-archive__card-actions">
-          <a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Open issue</a>
-          <a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" target="_blank" rel="noopener">Download PDF</a>
+          <a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" target="_blank" rel="noopener">Open issue</a>
+          <a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>
+          ${r.sceneCount < 7 ? `<a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue generating</a>` : ""}
+          <a class="dream-archive__btn" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" download>Download PDF</a>
         </div>
       </article>`;
   }
@@ -104,8 +106,8 @@ export function renderDreamArchive(root: HTMLElement): () => void {
         <h3 class="dream-archive__card-title">${escapeHtml(r.seedText || "Untitled dream")}</h3>
         <p class="dream-archive__card-meta">${new Date(r.createdAt).toLocaleDateString()} · ${r.sceneCount}/7 scenes generated</p>
         <div class="dream-archive__card-actions">
-          <a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Resume</a>
-          ${r.sceneCount ? `<a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Zine Studio</a>` : ""}
+          <a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue generating</a>
+          ${r.sceneCount ? `<a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>` : ""}
           <button type="button" class="dream-archive__btn dream-archive__btn--danger" data-delete-run="${escapeHtml(r.id)}">Delete</button>
         </div>
       </article>`;

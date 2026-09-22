@@ -14,6 +14,8 @@ const REQUEST_TIMEOUT_MS = 6 * 60 * 1000;
 export interface GenerationRequest {
   timeOfDay: string;
   sceneIndex: number;
+  /** only meaningful for the opening scene, which has no inherited fragments yet */
+  seedText?: string;
   rememberedFragments: string[];
   distortionNote?: string;
   /** defaults chosen for a reasonable interactive wait, not final zine quality */

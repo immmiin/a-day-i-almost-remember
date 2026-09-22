@@ -285,6 +285,8 @@
 }
 
 .dream-machine__btn {
+  display: inline-block;
+  text-decoration: none;
   padding: 0.75em 1.2em;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, currentColor 60%, transparent);

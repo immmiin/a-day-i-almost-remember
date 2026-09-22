@@ -24,14 +24,48 @@ export function renderZineStudio(root: HTMLElement): () => void {
   let exporting = false;
   let saveNote = "";
 
+  function paintIntroState(kind: "no-run" | "not-found" | "no-scenes"): void {
+    section.innerHTML = `
+      <div class="zine-studio__intro">
+        <div class="zine-studio__intro-texture" aria-hidden="true"></div>
+        <div class="zine-studio__intro-card">
+          ${
+            kind === "no-scenes"
+              ? `
+            <h1 class="zine-studio__intro-title">This issue has no scenes yet.</h1>
+            <p class="zine-studio__intro-body">Generate its first scene in the Dream Machine, then come back to lay it out here.</p>
+            <div class="zine-studio__intro-actions">
+              <a class="dream-archive__btn dream-archive__btn--primary" href="#/machine?resume=${encodeURIComponent(runId ?? "")}">Generate the first scene</a>
+              <a class="dream-archive__btn" href="#/archive">Back to Dream Archive</a>
+            </div>`
+              : `
+            <h1 class="zine-studio__intro-title">Your zine is waiting for a dream.</h1>
+            <p class="zine-studio__intro-body">
+              ${kind === "not-found" ? "That run couldn't be found — it may have been deleted. " : ""}
+              Open a saved draft or completed issue to continue editing, or start something new.
+            </p>
+            <div class="zine-studio__intro-actions">
+              <a class="dream-archive__btn dream-archive__btn--primary" href="#/archive">Open Dream Archive</a>
+              <a class="dream-archive__btn" href="#/">Begin a new dream</a>
+            </div>`
+          }
+        </div>
+      </div>
+    `;
+  }
+
   async function init(): Promise<void> {
     if (!runId) {
-      section.innerHTML = `<p class="zine-studio__empty">No run selected. Open a draft or completed issue from the <a href="#/archive">Dream Archive</a> first.</p>`;
+      paintIntroState("no-run");
       return;
     }
     run = await getRun(runId);
     if (!run) {
-      section.innerHTML = `<p class="zine-studio__empty">That run couldn't be found. It may have been deleted.</p>`;
+      paintIntroState("not-found");
+      return;
+    }
+    if (run.scenes.length === 0) {
+      paintIntroState("no-scenes");
       return;
     }
     title = run.zine?.title || run.seedText || "A Day I Almost Remember";
@@ -108,7 +142,10 @@ export function renderZineStudio(root: HTMLElement): () => void {
               caption for page ${focusIndex + 2}
               <textarea id="caption-edit" rows="2">${escapeHtml(focused.caption ?? shortCaption(focusedScene.prompt) ?? "")}</textarea>
             </label>`
-              : `<p class="zine-studio__empty">Select a page on the left to preview and caption it.</p>`
+              : `<div class="zine-studio__preview-placeholder">
+                   <div class="zine-studio__preview-placeholder-mark" aria-hidden="true"></div>
+                   <p>Select a page on the left — or add a generated scene above — to preview and caption it here.</p>
+                 </div>`
           }
         </div>
       </section>
@@ -119,6 +156,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
           ${lowResCount ? `<p class="zine-studio__warning">${lowResCount} scene${lowResCount === 1 ? "" : "s"} below 300dpi print resolution at A5 — they'll still export, flagged in the result.</p>` : ""}
         </div>
         <div class="zine-studio__footer-actions">
+          <a class="zine-studio__tool" href="#/machine?resume=${encodeURIComponent(run.id)}">Generate another scene →</a>
           <button type="button" class="zine-studio__tool" id="save-draft">Save draft</button>
           <button type="button" class="zine-studio__export" id="export-pdf" ${pages.length === 0 || exporting ? "disabled" : ""}>
             ${exporting ? "Exporting…" : "Export PDF"}
