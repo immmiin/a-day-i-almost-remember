@@ -1,8 +1,8 @@
 import "./style.css";
 import { renderDreamFiles } from "./ui/dream-files";
 import { renderDreamMachine } from "./ui/dream-machine";
-import { renderZineSpread } from "./ui/zine-spread";
-import { renderDreamArchivePlaceholder } from "./ui/dream-archive-placeholder";
+import { renderZineStudio } from "./ui/zine-studio";
+import { renderDreamArchive } from "./ui/dream-archive";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -19,9 +19,9 @@ function route(): void {
   if (path === "machine") {
     cleanup = renderDreamMachine(app);
   } else if (path === "zine") {
-    cleanup = renderZineSpread(app);
+    cleanup = renderZineStudio(app);
   } else if (path === "archive") {
-    cleanup = renderDreamArchivePlaceholder(app);
+    cleanup = renderDreamArchive(app);
   } else {
     cleanup = renderDreamFiles(app);
   }

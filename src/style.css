@@ -4,6 +4,7 @@
 @import "./styles/dream-files.css";
 @import "./styles/dream-machine.css";
 @import "./styles/zine-studio.css";
+@import "./styles/dream-archive.css";
 
 /* legacy screens (unrouted for now, kept for the future Drafts area) */
 @import "./styles/entry.css";

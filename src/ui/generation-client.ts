@@ -7,7 +7,6 @@
 
 const GENERATION_ENDPOINT = "http://localhost:8787/api/generate";
 const HEALTH_ENDPOINT = "http://localhost:8787/api/health";
-const BACKEND_ORIGIN = "http://localhost:8787";
 // Local generation genuinely takes 1-3+ minutes depending on size/steps;
 // this is a ceiling against a truly stuck request, not an expected wait.
 const REQUEST_TIMEOUT_MS = 6 * 60 * 1000;
@@ -47,7 +46,10 @@ export async function requestGeneration(
     if (!res.ok) return { ok: false, reason: "failed" };
     const data = (await res.json()) as { imageUrl?: string; prompt?: string; seed?: number };
     if (!data.imageUrl) return { ok: false, reason: "failed" };
-    return { ok: true, imageUrl: `${BACKEND_ORIGIN}${data.imageUrl}`, prompt: data.prompt ?? "", seed: data.seed ?? 0 };
+    // imageUrl stays relative (e.g. "/images/x.png") here — it's what gets
+    // persisted, and the server's own PDF export reads it as a relative
+    // path. Callers that render it in the browser use absoluteUrl().
+    return { ok: true, imageUrl: data.imageUrl, prompt: data.prompt ?? "", seed: data.seed ?? 0 };
   } catch (err) {
     if (signal?.aborted) return { ok: false, reason: "cancelled" };
     return { ok: false, reason: "not-connected" };

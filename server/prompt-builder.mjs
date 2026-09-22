@@ -8,10 +8,10 @@
  */
 
 const ART_DIRECTION =
-  "photographed dream: believable photographic texture, lighting and shadow, " +
-  "vintage domestic interior, floral upholstery, tactile fabrics, softly faded " +
-  "pastels, an ordinary action performed on an impossible subject, treated as " +
-  "everyday reality, 35mm film photograph, not illustration, not 3d render";
+  "photographic surrealism, believable documentary texture, pastel dream colors, " +
+  "ordinary domestic life, one impossible transformation, vintage editorial " +
+  "photography, soft natural light, tactile materials, subtle uncanny details, " +
+  "not illustration, not 3d render, not cgi";
 
 const NEGATIVE_PROMPT =
   "blurry, low quality, cartoon, illustration, 3d render, cgi, painting, " +
