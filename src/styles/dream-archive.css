@@ -65,6 +65,45 @@
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
+.dream-archive__grid--shelf {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1.75rem 1.5rem;
+}
+
+/* Completed issues read as a curated shelf, not a file list: each poster
+   carries a faint independent tilt, like a small stack of real prints, and
+   straightens as it lifts on hover/focus. */
+.dream-archive__card--issue {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding-bottom: 0;
+  transform: rotate(var(--tilt, 0deg));
+}
+
+.dream-archive__card--issue:hover,
+.dream-archive__card--issue:focus-within {
+  transform: rotate(0deg) translateY(-6px);
+}
+
+.dream-archive__card--issue .zine-cover {
+  margin-bottom: 0.6rem;
+}
+
+.dream-archive__card--issue .dream-archive__card-actions {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dream-archive__card--issue {
+    transform: none;
+  }
+  .dream-archive__card--issue:hover,
+  .dream-archive__card--issue:focus-within {
+    transform: none;
+  }
+}
+
 .dream-archive__card {
   background: var(--dream-paper-ink);
   border: 1px solid color-mix(in srgb, var(--dream-ink) 15%, transparent);

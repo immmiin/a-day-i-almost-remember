@@ -51,22 +51,40 @@ export async function upsertScene(runId, scene) {
   return run;
 }
 
+// A run's issue number is its 1-based rank by creation order among every
+// run ever started (draft or completed) — stable enough for this scale
+// without a separate counter, and the same number a completed run's PDF
+// cover was stamped with at export time.
+function issueNumberOf(runs, runId) {
+  const sorted = [...runs].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const idx = sorted.findIndex((r) => r.id === runId);
+  return idx === -1 ? 1 : idx + 1;
+}
+
 export async function listRuns() {
   const runs = await readRuns();
-  return runs.map((r) => ({
-    id: r.id,
-    seedText: r.seedText,
-    createdAt: r.createdAt,
-    sceneCount: r.scenes.length,
-    coverImageUrl: r.scenes[0]?.imageUrl ?? null,
-    completed: Boolean(r.zine?.pdfUrl),
-    zineTitle: r.zine?.title ?? null,
-  }));
+  return runs.map((r) => {
+    const chosenIndex = r.zine?.cover?.sceneIndex;
+    const chosenScene = chosenIndex != null ? r.scenes.find((s) => s.index === chosenIndex) : null;
+    return {
+      id: r.id,
+      seedText: r.seedText,
+      createdAt: r.createdAt,
+      sceneCount: r.scenes.length,
+      coverImageUrl: chosenScene?.imageUrl ?? r.scenes[0]?.imageUrl ?? null,
+      completed: Boolean(r.zine?.pdfUrl),
+      zineTitle: r.zine?.title ?? null,
+      cover: r.zine?.cover ?? null,
+      issueNumber: issueNumberOf(runs, r.id),
+    };
+  });
 }
 
 export async function getRun(runId) {
   const runs = await readRuns();
-  return runs.find((r) => r.id === runId) ?? null;
+  const run = runs.find((r) => r.id === runId) ?? null;
+  if (!run) return null;
+  return { ...run, issueNumber: issueNumberOf(runs, runId) };
 }
 
 export async function saveZine(runId, zine) {

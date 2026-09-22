@@ -22,8 +22,11 @@
 
 .dream-machine__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: clamp(1.5rem, 3vw, 2.5rem);
+  /* ~63/37 at rest: the image stage reads as the main event, the info panel
+     as a coherent margin note beside it, with one deliberate gap between —
+     not two components stranded across a wide empty middle. */
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.75rem);
   align-items: start;
   max-width: 1600px;
   margin: 0 auto;
@@ -34,18 +37,13 @@
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 40px 80px -35px rgba(0, 0, 0, 0.55);
-}
-
-.dream-machine__main[data-orientation="portrait"] {
-  width: fit-content;
-  max-width: 100%;
-  height: min(76vh, 760px);
-  aspect-ratio: 3 / 4;
-}
-
-.dream-machine__main[data-orientation="landscape"] {
-  width: 100%;
-  aspect-ratio: 3 / 2;
+  /* Generation only ever produces square frames today, so a 1:1 stage
+     never crops what comes back — object-fit: cover here is a no-op on
+     the actual aspect ratio, not a silent crop of a differently-shaped
+     image. Width is capped by both the column and the viewport height so
+     the image reads as substantial without overrunning the fold. */
+  width: min(100%, 74vh);
+  aspect-ratio: 1 / 1;
 }
 
 .dream-machine__main-img {
@@ -72,11 +70,31 @@
   filter: blur(3px) brightness(0.55);
 }
 
+/* The waiting stage before a scene exists: a slow drifting wash of the
+   time-of-day theme colors, standing in for the image that isn't there
+   yet — an invitation, not an empty dashed placeholder box. */
 .dream-machine__main-empty {
-  width: 100%;
-  height: 100%;
-  border: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
-  border-radius: 8px;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(46% 40% at 22% 24%, color-mix(in srgb, var(--stage-ink, #fff) 16%, transparent), transparent 70%),
+    radial-gradient(40% 36% at 80% 78%, color-mix(in srgb, var(--stage-ink, #fff) 12%, transparent), transparent 70%);
+  animation: dm-waiting-drift 16s ease-in-out infinite alternate;
+}
+
+@keyframes dm-waiting-drift {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: scale(1.06) translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dream-machine__main-empty {
+    animation: none;
+  }
 }
 
 .dream-machine__idle {
@@ -91,10 +109,12 @@
 }
 
 .dream-machine__idle-text {
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  opacity: 0.85;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  opacity: 0.9;
   margin: 0;
+  max-width: 22rem;
 }
 
 .dream-machine__overlay {
@@ -151,26 +171,22 @@
   }
 }
 
-.dream-machine__time-mark {
-  display: none;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  letter-spacing: 0.02em;
-  opacity: 0.5;
-  align-self: center;
-  justify-self: center;
-  white-space: nowrap;
-}
-
-@media (min-width: 1220px) {
-  .dream-machine__body {
-    grid-template-columns: minmax(0, 1fr) auto 360px;
-  }
-  .dream-machine__time-mark {
-    display: block;
-  }
+/* Scene/time now lives at the image's own edge, not as a large vertical
+   label filling the gap between the two columns. */
+.dream-machine__scene-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  padding: 0.3em 0.6em;
+  background: rgba(20, 14, 22, 0.55);
+  color: #fff;
+  border-radius: 999px;
+  pointer-events: none;
+  text-transform: uppercase;
 }
 
 .dream-machine__side {
@@ -343,9 +359,8 @@
   .dream-machine__body {
     grid-template-columns: 1fr;
   }
-  .dream-machine__main[data-orientation="portrait"] {
+  .dream-machine__main {
     width: 100%;
-    height: auto;
   }
   .dream-machine__side {
     position: static;

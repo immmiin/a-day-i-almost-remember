@@ -1,4 +1,5 @@
 import type { Scene } from "../generation/types";
+import type { CoverConfig } from "./zine-cover";
 
 const BACKEND = "http://localhost:8787";
 
@@ -10,6 +11,8 @@ export interface RunSummary {
   coverImageUrl: string | null;
   completed: boolean;
   zineTitle: string | null;
+  cover: Partial<CoverConfig> | null;
+  issueNumber: number;
 }
 
 export interface SavedScene {
@@ -37,8 +40,16 @@ export interface RunDetail {
   id: string;
   seedText: string;
   createdAt: string;
+  issueNumber: number;
   scenes: SavedScene[];
-  zine: { title?: string; pages?: ZinePageEntry[]; pdfUrl?: string; pageCount?: number; exportedAt?: string } | null;
+  zine: {
+    title?: string;
+    pages?: ZinePageEntry[];
+    cover?: Partial<CoverConfig>;
+    pdfUrl?: string;
+    pageCount?: number;
+    exportedAt?: string;
+  } | null;
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -84,12 +95,17 @@ export async function deleteRun(id: string): Promise<void> {
   await fetch(`${BACKEND}/api/runs/${id}`, { method: "DELETE" });
 }
 
-export async function saveZinePages(runId: string, title: string, pages: ZinePageEntry[]): Promise<RunDetail> {
+export async function saveZinePages(
+  runId: string,
+  title: string,
+  pages: ZinePageEntry[],
+  cover?: CoverConfig,
+): Promise<RunDetail> {
   return json(
     await fetch(`${BACKEND}/api/runs/${runId}/zine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, pages }),
+      body: JSON.stringify({ title, pages, cover }),
     }),
   );
 }

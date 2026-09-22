@@ -2,6 +2,7 @@ import { buildDreamNav } from "./dream-nav";
 import { escapeHtml } from "./util";
 import { listRuns, deleteRun, absoluteUrl, type RunSummary } from "./dream-api";
 import { PLACEHOLDER_ASSETS } from "./placeholder-assets";
+import { renderCoverFace, resolveCoverConfig } from "./zine-cover";
 
 export function renderDreamArchive(root: HTMLElement): () => void {
   const section = document.createElement("section");
@@ -39,7 +40,7 @@ export function renderDreamArchive(root: HTMLElement): () => void {
         <h2 class="dream-archive__section-title">Completed Issues</h2>
         ${
           completed.length
-            ? `<div class="dream-archive__grid">${completed.map(issueCard).join("")}</div>`
+            ? `<div class="dream-archive__grid dream-archive__grid--shelf">${completed.map((r, i) => issueCard(r, i)).join("")}</div>`
             : `<p class="dream-archive__empty">No issue has been exported yet — finish a run in the Zine Studio to see it here.</p>`
         }
       </section>
@@ -80,14 +81,21 @@ export function renderDreamArchive(root: HTMLElement): () => void {
     });
   }
 
-  function issueCard(r: RunSummary): string {
+  function issueCard(r: RunSummary, i: number): string {
+    const cover = resolveCoverConfig(r.cover);
+    const tilt = (i % 2 === 0 ? -1 : 1) * (0.4 + (i % 3) * 0.25);
     return `
-      <article class="dream-archive__card">
-        <div class="dream-archive__cover">
-          ${r.coverImageUrl ? `<img src="${absoluteUrl(r.coverImageUrl)}" alt="" />` : `<div class="dream-archive__cover-empty"></div>`}
-        </div>
-        <h3 class="dream-archive__card-title">${escapeHtml(r.zineTitle || r.seedText || "Untitled issue")}</h3>
-        <p class="dream-archive__card-meta">${new Date(r.createdAt).toLocaleDateString()} · ${r.sceneCount} scene${r.sceneCount === 1 ? "" : "s"}</p>
+      <article class="dream-archive__card dream-archive__card--issue" style="--tilt:${tilt}deg;">
+        ${renderCoverFace({
+          imageUrl: r.coverImageUrl ? absoluteUrl(r.coverImageUrl) : null,
+          title: r.zineTitle || r.seedText || "Untitled issue",
+          issueNumber: r.issueNumber,
+          date: new Date(r.createdAt).toLocaleDateString(),
+          posterLine: cover.posterLine,
+          contrast: cover.contrast,
+          focalX: cover.focalX,
+          focalY: cover.focalY,
+        })}
         <div class="dream-archive__card-actions">
           <a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + ".pdf")}" target="_blank" rel="noopener">Open issue</a>
           <a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>

@@ -1,6 +1,7 @@
 import { buildDreamNav } from "./dream-nav";
 import { escapeHtml, shortCaption } from "./util";
 import { getRun, saveZinePages, exportPdf, absoluteUrl, type RunDetail, type ZinePageEntry } from "./dream-api";
+import { renderCoverFace, resolveCoverConfig, type CoverConfig } from "./zine-cover";
 
 const CONTENT_SLOTS = 14; // pages 2-15; page 1 and 16 are auto covers
 
@@ -18,6 +19,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
   let run: RunDetail | null = null;
   let title = "A Day I Almost Remember";
   let pages: ZinePageEntry[] = [];
+  let cover: CoverConfig = resolveCoverConfig(null);
   let focusIndex = 0;
   let dragFrom: number | null = null;
   let exportResult: { pdfUrl: string; lowResWarnings: string[] } | null = null;
@@ -70,6 +72,10 @@ export function renderZineStudio(root: HTMLElement): () => void {
     }
     title = run.zine?.title || run.seedText || "A Day I Almost Remember";
     pages = run.zine?.pages ?? run.scenes.slice(0, CONTENT_SLOTS).map((s) => ({ sceneIndex: s.index, layout: "full" as const }));
+    cover = resolveCoverConfig(run.zine?.cover);
+    if (cover.sceneIndex == null) {
+      cover = { ...cover, sceneIndex: pages[0]?.sceneIndex ?? run.scenes[0]?.index ?? null };
+    }
     render();
   }
 
@@ -81,6 +87,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     if (!run) return;
     const focused = pages[focusIndex];
     const focusedScene = focused ? sceneFor(focused.sceneIndex) : null;
+    const coverScene = cover.sceneIndex != null ? sceneFor(cover.sceneIndex) : null;
     const lowResCount = run.scenes.filter((s) => s.settings && (s.settings.width < 1748 || s.settings.height < 2480)).length;
 
     section.innerHTML = `
@@ -103,6 +110,55 @@ export function renderZineStudio(root: HTMLElement): () => void {
             </button>`,
             )
             .join("") || `<p class="zine-studio__empty">No scenes generated yet for this run.</p>`}
+        </div>
+      </section>
+
+      <section class="zine-studio__cover-editor">
+        <h2 class="zine-studio__pool-title">Cover — page 1 and 16 of the printed issue</h2>
+        <div class="zine-studio__cover-layout">
+          <div class="zine-studio__cover-preview">
+            ${renderCoverFace({
+              imageUrl: coverScene ? absoluteUrl(coverScene.imageUrl) : null,
+              title,
+              issueNumber: run.issueNumber,
+              date: new Date(run.createdAt).toLocaleDateString(),
+              posterLine: cover.posterLine,
+              contrast: cover.contrast,
+              focalX: cover.focalX,
+              focalY: cover.focalY,
+              size: "lg",
+            })}
+          </div>
+          <div class="zine-studio__cover-controls">
+            <div class="zine-studio__cover-picker" role="group" aria-label="Choose the cover image">
+              ${
+                run.scenes
+                  .map(
+                    (s) => `
+                <button type="button" class="zine-studio__cover-pick${cover.sceneIndex === s.index ? " is-selected" : ""}" data-cover-scene="${s.index}" aria-pressed="${cover.sceneIndex === s.index}" aria-label="Use scene ${s.index + 1} as the cover image">
+                  <img src="${absoluteUrl(s.imageUrl)}" alt="" />
+                </button>`,
+                  )
+                  .join("") || `<p class="zine-studio__empty">Generate a scene to choose a cover image.</p>`
+              }
+            </div>
+            <label class="zine-studio__cover-field">
+              poster line <span>(optional)</span>
+              <input type="text" id="cover-poster-line" maxlength="80" value="${escapeHtml(cover.posterLine)}" placeholder="a fragment of the dream, printed small" />
+            </label>
+            <div class="zine-studio__cover-sliders">
+              <label>reposition — horizontal
+                <input type="range" id="cover-focal-x" min="0" max="100" value="${cover.focalX}" />
+              </label>
+              <label>reposition — vertical
+                <input type="range" id="cover-focal-y" min="0" max="100" value="${cover.focalY}" />
+              </label>
+            </div>
+            <div class="zine-studio__cover-contrast" role="group" aria-label="Cover text contrast">
+              <button type="button" class="zine-studio__tool${cover.contrast === "ink" ? " is-active" : ""}" data-cover-contrast="ink" aria-pressed="${cover.contrast === "ink"}">Dark overlay · light text</button>
+              <button type="button" class="zine-studio__tool${cover.contrast === "paper" ? " is-active" : ""}" data-cover-contrast="paper" aria-pressed="${cover.contrast === "paper"}">Light overlay · dark text</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -237,13 +293,44 @@ export function renderZineStudio(root: HTMLElement): () => void {
       });
     });
 
+    section.querySelectorAll<HTMLButtonElement>("[data-cover-scene]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        cover = { ...cover, sceneIndex: Number(btn.dataset.coverScene) };
+        render();
+      });
+    });
+
+    section.querySelector<HTMLInputElement>("#cover-poster-line")?.addEventListener("change", (e) => {
+      cover = { ...cover, posterLine: (e.target as HTMLInputElement).value };
+    });
+
+    function applyFocalLive(): void {
+      const img = section.querySelector<HTMLImageElement>(".zine-studio__cover-preview .zine-cover__img");
+      if (img) img.style.objectPosition = `${cover.focalX}% ${cover.focalY}%`;
+    }
+    section.querySelector<HTMLInputElement>("#cover-focal-x")?.addEventListener("input", (e) => {
+      cover = { ...cover, focalX: Number((e.target as HTMLInputElement).value) };
+      applyFocalLive();
+    });
+    section.querySelector<HTMLInputElement>("#cover-focal-y")?.addEventListener("input", (e) => {
+      cover = { ...cover, focalY: Number((e.target as HTMLInputElement).value) };
+      applyFocalLive();
+    });
+
+    section.querySelectorAll<HTMLButtonElement>("[data-cover-contrast]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        cover = { ...cover, contrast: btn.dataset.coverContrast as CoverConfig["contrast"] };
+        render();
+      });
+    });
+
     const captionEl = section.querySelector<HTMLTextAreaElement>("#caption-edit");
     captionEl?.addEventListener("change", () => {
       pages[focusIndex] = { ...pages[focusIndex], caption: captionEl.value };
     });
 
     section.querySelector<HTMLButtonElement>("#save-draft")!.addEventListener("click", async () => {
-      await saveZinePages(run!.id, title, pages);
+      await saveZinePages(run!.id, title, pages, cover);
       saveNote = "Draft saved ✓";
       render();
       window.setTimeout(() => {
@@ -254,7 +341,7 @@ export function renderZineStudio(root: HTMLElement): () => void {
     section.querySelector<HTMLButtonElement>("#export-pdf")!.addEventListener("click", async () => {
       exporting = true;
       render();
-      await saveZinePages(run!.id, title, pages);
+      await saveZinePages(run!.id, title, pages, cover);
       try {
         exportResult = await exportPdf(run!.id);
       } catch (err) {

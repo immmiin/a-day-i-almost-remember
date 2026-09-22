@@ -116,7 +116,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     if (sceneState === "idle") {
       return `
         <div class="dream-machine__idle">
-          <p class="dream-machine__idle-text">Nothing generated for this scene yet.</p>
+          <p class="dream-machine__idle-text">This scene hasn't taken shape yet.</p>
           <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-generate">
             <span class="dream-machine__btn-label">Generate this scene</span>
           </button>
@@ -156,15 +156,15 @@ export function renderDreamMachine(root: HTMLElement): () => void {
       </div>
       <p class="visually-hidden" role="status" aria-live="polite">${escapeHtml(statusMessage)}</p>
       <div class="dream-machine__body">
-        <div class="dream-machine__main" data-orientation="portrait" data-busy="${sceneState !== "generated"}" aria-busy="${sceneState === "generating"}">
+        <div class="dream-machine__main" data-busy="${sceneState !== "generated"}" aria-busy="${sceneState === "generating"}">
           ${
             savedScene
               ? `<img class="dream-machine__main-img" src="${absoluteUrl(savedScene.imageUrl)}" alt="Locally generated scene image" />`
               : `<div class="dream-machine__main-empty" aria-hidden="true"></div>`
           }
+          <div class="dream-machine__scene-badge">scene ${index + 1} · ${escapeHtml(fragScene.timeOfDay)}</div>
           ${stageOverlay()}
         </div>
-        <div class="dream-machine__time-mark" aria-hidden="true">scene ${index + 1} · ${escapeHtml(fragScene.timeOfDay)}</div>
         <div class="dream-machine__side">
           <div class="dream-machine__side-block">
             <span class="dream-machine__side-label">caption</span>

@@ -200,6 +200,122 @@
   display: block;
 }
 
+.zine-studio__cover-editor {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.zine-studio__cover-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.zine-studio__cover-preview {
+  width: 220px;
+}
+
+.zine-studio__cover-controls {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.zine-studio__cover-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.zine-studio__cover-pick {
+  width: 52px;
+  aspect-ratio: 3 / 4;
+  border-radius: 5px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+
+.zine-studio__cover-pick:hover {
+  opacity: 1;
+}
+
+.zine-studio__cover-pick.is-selected {
+  opacity: 1;
+  border-color: var(--dream-lilac-deep);
+}
+
+.zine-studio__cover-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.zine-studio__cover-field {
+  display: grid;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__cover-field span {
+  opacity: 0.7;
+}
+
+.zine-studio__cover-field input {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--dream-ink);
+  padding: 0.5em 0.6em;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--dream-ink) 30%, transparent);
+  background: var(--dream-paper-ink);
+}
+
+.zine-studio__cover-sliders {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.zine-studio__cover-sliders label {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--dream-ink-soft);
+}
+
+.zine-studio__cover-sliders input[type="range"] {
+  accent-color: var(--dream-lilac-deep);
+}
+
+.zine-studio__cover-contrast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.zine-studio__tool.is-active {
+  background: var(--dream-ink);
+  color: var(--dream-paper);
+}
+
+@media (max-width: 640px) {
+  .zine-studio__cover-layout {
+    grid-template-columns: 1fr;
+  }
+  .zine-studio__cover-preview {
+    width: min(220px, 60vw);
+    margin: 0 auto;
+  }
+}
+
 .zine-studio__editor {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;

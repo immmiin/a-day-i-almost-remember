@@ -226,7 +226,7 @@ const server = createServer(async (req, res) => {
     try {
       const run = await getRun(exportMatch[1]);
       if (!run) throw new Error("run not found");
-      const result = await exportRunToPdf(run);
+      const result = await exportRunToPdf(run, run.issueNumber);
       const updated = await saveZine(exportMatch[1], {
         pdfUrl: result.pdfUrl,
         pageCount: result.pageCount,
