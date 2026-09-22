@@ -19,43 +19,154 @@
   filter: blur(2px);
 }
 
-.dream-files__frame {
+.dream-files__stage {
   position: relative;
   z-index: 1;
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: clamp(5.5rem, 10vh, 8rem) 1rem 2rem;
+  padding-top: 3.5rem;
+  outline: none;
 }
 
-.dream-files__center {
+.dream-files__ring-wrap {
   position: relative;
-  z-index: 3;
+  width: min(1360px, 94vw);
+  height: min(600px, 66vh);
+  transition: transform 560ms var(--ease-in-out), opacity 480ms var(--ease-out);
+}
+
+.dream-files__ring {
+  position: absolute;
+  inset: 0;
+}
+
+.dream-files__item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(150px, 15vw, 230px);
+  aspect-ratio: 3 / 4;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  will-change: transform;
+}
+
+.dream-files__item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 16px 34px -16px rgba(36, 26, 38, 0.5);
+  transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
+  display: block;
+}
+
+.dream-files__item-label {
+  position: absolute;
+  left: 50%;
+  bottom: -1.7rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  color: var(--dream-ink);
+  background: color-mix(in srgb, var(--dream-paper) 88%, transparent);
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
+  pointer-events: none;
+}
+
+.dream-files__item:hover .dream-files__item-img,
+.dream-files__item:focus-visible .dream-files__item-img {
+  transform: scale(1.14) !important;
+  box-shadow: 0 26px 46px -16px rgba(36, 26, 38, 0.6);
+}
+
+.dream-files__item:hover .dream-files__item-label,
+.dream-files__item:focus-visible .dream-files__item-label {
+  opacity: 1;
+}
+
+.dream-files__item:hover,
+.dream-files__item:focus-visible {
+  z-index: 20;
+}
+
+.dream-files__item:focus-visible .dream-files__item-img {
+  outline: 2px solid var(--dream-ink);
+  outline-offset: 3px;
+}
+
+.dream-files__rotate {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--dream-ink);
+  background: color-mix(in srgb, var(--dream-paper) 82%, transparent);
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out);
+}
+
+.dream-files__rotate:hover {
+  background: var(--dream-ink);
+  color: var(--dream-paper);
+}
+
+.dream-files__rotate:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.dream-files__rotate--prev {
+  left: -0.75rem;
+}
+
+.dream-files__rotate--next {
+  right: -0.75rem;
+}
+
+/* Center: hidden until the stage is hovered/focused, sits above the ring */
+.dream-files__center {
+  position: absolute;
+  z-index: 10;
   display: grid;
   gap: 1.25rem;
   justify-items: center;
   text-align: center;
-  max-width: 26rem;
+  max-width: 24rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dream-paper) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  transform: translateY(6px);
   pointer-events: none;
+  transition: opacity 420ms var(--ease-out), transform 420ms var(--ease-out);
 }
 
-.dream-files__center > * {
+.dream-files__stage.is-revealed .dream-files__center {
+  opacity: 1;
+  transform: translateY(0);
   pointer-events: auto;
 }
 
 .dream-files__title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2.1rem, 5.5vw, 3.4rem);
-  line-height: 1.02;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.04;
   letter-spacing: -0.01em;
-  margin: 0;
-}
-
-.dream-files__concept {
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--dream-ink-soft);
   margin: 0;
 }
 
@@ -81,118 +192,9 @@
   transform: scale(0.97);
 }
 
-.dream-files__ring-wrap {
-  position: relative;
-  z-index: 2;
-  width: min(74vh, 90vw, 780px);
-  aspect-ratio: 1;
-  margin-top: clamp(1rem, 4vh, 2.5rem);
-}
-
-.dream-files__ring {
-  position: absolute;
-  inset: 0;
-  will-change: transform;
-}
-
-.dream-files__item {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: clamp(84px, 11vw, 132px);
-  aspect-ratio: 3 / 4;
-  margin: calc(clamp(84px, 11vw, 132px) * -4 / 3 / 2) 0 0 calc(clamp(84px, 11vw, 132px) / -2);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  background: none;
-  transition: filter 200ms var(--ease-out);
-}
-
-.dream-files__item-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 6px;
-  box-shadow: 0 10px 24px -12px rgba(36, 26, 38, 0.45);
-  transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
-  display: block;
-}
-
-.dream-files__item-label {
-  position: absolute;
-  left: 50%;
-  bottom: -1.6rem;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.02em;
-  color: var(--dream-ink);
-  background: color-mix(in srgb, var(--dream-paper) 88%, transparent);
-  padding: 0.2em 0.55em;
-  border-radius: 999px;
-  opacity: 0;
-  transition: opacity 180ms var(--ease-out);
-  pointer-events: none;
-}
-
-.dream-files__item:hover .dream-files__item-img,
-.dream-files__item:focus-visible .dream-files__item-img {
-  transform: scale(1.18) rotate(0deg) !important;
-  box-shadow: 0 22px 40px -14px rgba(36, 26, 38, 0.55);
-}
-
-.dream-files__item:hover .dream-files__item-label,
-.dream-files__item:focus-visible .dream-files__item-label {
-  opacity: 1;
-}
-
-.dream-files__item:hover,
-.dream-files__item:focus-visible {
-  z-index: 10;
-}
-
-.dream-files__item:focus-visible .dream-files__item-img {
-  outline: 2px solid var(--dream-ink);
-  outline-offset: 3px;
-}
-
-.dream-files__rotate {
-  position: absolute;
-  z-index: 4;
-  top: 50%;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  border: 1px solid var(--dream-ink);
-  background: color-mix(in srgb, var(--dream-paper) 80%, transparent);
-  display: grid;
-  place-items: center;
-  transform: translateY(-50%);
-  transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out);
-}
-
-.dream-files__rotate:hover {
-  background: var(--dream-ink);
-  color: var(--dream-paper);
-}
-
-.dream-files__rotate:active {
-  transform: translateY(-50%) scale(0.94);
-}
-
-.dream-files__rotate--prev {
-  left: -0.5rem;
-}
-
-.dream-files__rotate--next {
-  right: -0.5rem;
-}
-
 .dream-files__hint {
-  position: absolute;
-  bottom: 1.25rem;
+  position: fixed;
+  bottom: 1.1rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -200,17 +202,29 @@
   font-size: 0.66rem;
   letter-spacing: 0.03em;
   color: var(--dream-ink-soft);
+  text-align: center;
+  pointer-events: none;
 }
 
-/* Shrink-to-background transition into Dream Machine, essesi-style */
+/* Opening an existing file: the rest of the collection dims into background markers */
 .dream-files.is-leaving .dream-files__ring-wrap {
-  transition: transform 700ms var(--ease-in-out), opacity 700ms var(--ease-in-out);
   transform: scale(0.28);
   opacity: 0.35;
 }
 
 .dream-files.is-leaving .dream-files__center {
-  transition: opacity 400ms var(--ease-out);
+  transition: opacity 300ms var(--ease-out);
+  opacity: 0;
+}
+
+/* Beginning a fresh dream: the collection rushes outward and away */
+.dream-files.is-launching .dream-files__ring-wrap {
+  transform: scale(2.6);
+  opacity: 0;
+}
+
+.dream-files.is-launching .dream-files__center {
+  transition: opacity 200ms var(--ease-out);
   opacity: 0;
 }
 
@@ -219,14 +233,19 @@
   .dream-files__item:focus-visible .dream-files__item-img {
     transform: none !important;
   }
+  .dream-files__ring-wrap,
+  .dream-files__center {
+    transition: none;
+  }
 }
 
-@media (max-width: 640px) {
-  .dream-files__frame {
-    padding-top: 6.5rem;
-  }
+@media (max-width: 720px) {
   .dream-files__ring-wrap {
-    width: min(120vw, 92vw);
+    width: 98vw;
+    height: 64vh;
+  }
+  .dream-files__item {
+    width: clamp(92px, 22vw, 130px);
   }
   .dream-files__rotate--prev {
     left: 0.25rem;
