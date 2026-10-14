@@ -1,24 +1,34 @@
 import { createServer } from "node:http";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { buildPrompt } from "./prompt-builder.mjs";
-import { createRun, upsertScene, listRuns, getRun, saveZine, deleteRun } from "./store.mjs";
+import { createRun, upsertScene, listRuns, getRun, saveZine, deleteRun, listAllImages } from "./store.mjs";
 import { exportRunToPdf, exportRunToSpreadPdf } from "./pdf-export.mjs";
+import { addGeneration, syncSceneToGallery, syncZineCaptionsToGallery, captionFor, GALLERY_URL_PREFIX, GALLERY_DIR } from "./gallery.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_DIR = join(__dirname, "generated");
 const PDF_DIR = join(GENERATED_DIR, "zines");
-const DRAW_THINGS_URL = "http://localhost:7860";
+// 127.0.0.1, not "localhost": Draw Things listens on IPv4 only, and
+// "localhost" can resolve to ::1 first.
+const DRAW_THINGS_URL = "http://127.0.0.1:7860";
 const PORT = 8787;
 
 await mkdir(GENERATED_DIR, { recursive: true });
 await mkdir(PDF_DIR, { recursive: true });
 
-function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+// Only pages served from this machine may call the backend from a browser.
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+function cors(req, res) {
+  const origin = req.headers.origin;
+  if (origin && LOCAL_ORIGIN.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -43,7 +53,7 @@ async function checkDrawThings() {
   }
 }
 
-async function generateImage({ timeOfDay, seedText, rememberedFragments, distortionNote, sceneIndex, seed, width, height, steps }) {
+async function generateImage({ runId, timeOfDay, seedText, rememberedFragments, distortionNote, sceneIndex, seed, width, height, steps }) {
   const { prompt, negativePrompt } = buildPrompt({ timeOfDay, seedText, rememberedFragments, distortionNote, sceneIndex });
   const usedSeed = seed ?? Math.floor(Math.random() * 2 ** 31);
 
@@ -69,15 +79,24 @@ async function generateImage({ timeOfDay, seedText, rememberedFragments, distort
   const b64 = data.images?.[0];
   if (!b64) throw new Error("Draw Things response had no image");
 
+  // Saved permanently into public/generations/ (PNG + WebP + manifest
+  // entry) so it ships with every build and shows without this backend.
   const id = `${Date.now()}-${randomBytes(4).toString("hex")}`;
-  const filename = `${id}.png`;
-  await writeFile(join(GENERATED_DIR, filename), Buffer.from(b64, "base64"));
+  const entry = await addGeneration({
+    id,
+    png: Buffer.from(b64, "base64"),
+    runId,
+    sceneIndex,
+    timeOfDay,
+    caption: captionFor({ prompt, sceneIndex, seedText }),
+    remembers: rememberedFragments,
+  });
 
-  return { imageUrl: `/images/${filename}`, prompt, seed: usedSeed };
+  return { imageUrl: `${GALLERY_URL_PREFIX}${entry.filename}`, prompt, seed: usedSeed };
 }
 
 const server = createServer(async (req, res) => {
-  cors(res);
+  cors(req, res);
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
@@ -98,6 +117,7 @@ const server = createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const rememberedFragments = Array.isArray(body.rememberedFragments) ? body.rememberedFragments : [];
       const result = await generateImage({
+        runId: typeof body.runId === "string" ? body.runId : undefined,
         timeOfDay: body.timeOfDay ?? "morning",
         seedText: body.seedText,
         rememberedFragments,
@@ -127,6 +147,24 @@ const server = createServer(async (req, res) => {
     }
     const { createReadStream } = await import("node:fs");
     res.writeHead(200, { "Content-Type": "image/png" });
+    createReadStream(filePath).pipe(res);
+    return;
+  }
+
+  // Live view of public/generations/ — a served dist/ only has the images
+  // that existed at build time, so the artist's own Dream Machine loads
+  // fresh generations from here until the next build picks them up.
+  if (url.pathname.startsWith(GALLERY_URL_PREFIX) && req.method === "GET") {
+    const filename = url.pathname.slice(GALLERY_URL_PREFIX.length);
+    const type = { png: "image/png", webp: "image/webp" }[filename.split(".").pop()];
+    const filePath = join(GALLERY_DIR, filename);
+    if (!type || !filename.match(/^[\w.-]+\.(png|webp)$/) || !existsSync(filePath)) {
+      res.writeHead(404);
+      res.end("not found");
+      return;
+    }
+    const { createReadStream } = await import("node:fs");
+    res.writeHead(200, { "Content-Type": type });
     createReadStream(filePath).pipe(res);
     return;
   }
@@ -171,6 +209,16 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Every generated image still on disk, across every saved run — the
+  // landing page's real source pool (see src/ui/dream-files.ts), not
+  // limited to the current run or publication covers.
+  if (url.pathname === "/api/images" && req.method === "GET") {
+    const images = await listAllImages();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(images));
+    return;
+  }
+
   const runMatch = url.pathname.match(/^\/api\/runs\/([\w-]+)$/);
   if (runMatch && req.method === "GET") {
     const run = await getRun(runMatch[1]);
@@ -197,6 +245,7 @@ const server = createServer(async (req, res) => {
     try {
       const body = await readJsonBody(req);
       const run = await upsertScene(scenesMatch[1], body);
+      await syncSceneToGallery(run, body);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(run));
     } catch (err) {
@@ -212,6 +261,7 @@ const server = createServer(async (req, res) => {
     try {
       const body = await readJsonBody(req);
       const run = await saveZine(zineMatch[1], body);
+      await syncZineCaptionsToGallery(run);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(run));
     } catch (err) {
@@ -267,7 +317,9 @@ const server = createServer(async (req, res) => {
   res.end(JSON.stringify({ error: "not found" }));
 });
 
-server.listen(PORT, () => {
-  console.log(`Dream generation backend listening on http://localhost:${PORT}`);
+// Loopback only: the generation backend is never reachable from the network.
+const HOST = "127.0.0.1";
+server.listen(PORT, HOST, () => {
+  console.log(`Dream generation backend listening on http://${HOST}:${PORT} (this machine only)`);
   console.log(`Proxying to Draw Things at ${DRAW_THINGS_URL}`);
 });

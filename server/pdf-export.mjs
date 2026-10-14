@@ -6,6 +6,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_DIR = join(__dirname, "generated");
 const PDF_DIR = join(GENERATED_DIR, "zines");
+const GALLERY_DIR = join(__dirname, "..", "public", "generations");
+
+// Newer scenes live in public/generations/ (see gallery.mjs); older ones
+// are still served from server/generated/ under /images/.
+function sceneImagePath(imageUrl) {
+  if (imageUrl.startsWith("/generations/")) return join(GALLERY_DIR, imageUrl.replace(/^\/generations\//, ""));
+  return join(GENERATED_DIR, imageUrl.replace(/^\/images\//, ""));
+}
 
 // Mirrors src/ui/util.ts's shortCaption(): the shared art-direction preamble
 // has no period of its own, so the prompt's second "sentence" ("The scene
@@ -43,7 +51,7 @@ function looksLikeGenerationText(text) {
  * prompt, itself rejected if it still reads as generation text. A blank
  * result is fine and expected — nothing here invents a caption.
  */
-function publicationCaption(entry, scene) {
+export function publicationCaption(entry, scene) {
   const stored = (entry.caption ?? "").trim();
   if (stored && !looksLikeGenerationText(stored)) return stored;
   const derived = shortCaption(scene.prompt);
@@ -108,7 +116,7 @@ function drawFitContainedAt(page, xOffset, img) {
 async function embedSceneImage(doc, run, sceneIndex) {
   const scene = sceneIndex != null ? run.scenes.find((s) => s.index === sceneIndex) : null;
   if (!scene) return null;
-  const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
+  const imgPath = sceneImagePath(scene.imageUrl);
   const bytes = await readFile(imgPath);
   return doc.embedPng(bytes);
 }
@@ -195,7 +203,7 @@ async function drawContentPage(doc, page, xOffset, entry, run, fonts, pageNumber
     const scene = run.scenes.find((s) => s.index === entry.sceneIndex);
     if (!scene) return null;
 
-    const imgPath = join(GENERATED_DIR, scene.imageUrl.replace(/^\/images\//, ""));
+    const imgPath = sceneImagePath(scene.imageUrl);
     const bytes = await readFile(imgPath);
     const img = await doc.embedPng(bytes);
 

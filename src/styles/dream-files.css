@@ -45,13 +45,40 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: clamp(150px, 15vw, 230px);
+  width: clamp(130px, 13vw, 210px);
   aspect-ratio: 3 / 4;
   border: none;
   padding: 0;
   cursor: pointer;
   background: none;
   will-change: transform;
+  /* No transition here on purpose: transform is rewritten every animation
+     frame by dream-files.ts's own rAF loop for the orbit motion. A CSS
+     transition on the same property would fight that, producing a
+     smeared, lagging trail instead of direct frame-accurate movement. */
+}
+
+/* Depth layers — assigned once per slot (dream-files.ts), never per
+   frame: a foreground image stays crisp and fully opaque, a background
+   one sits back with reduced opacity and a touch of blur, restrained
+   rather than washed out. z-index follows the same read so nearer
+   images naturally sit over farther ones. */
+.dream-files__item[data-layer="fore"] {
+  z-index: 3;
+}
+
+.dream-files__item[data-layer="mid"] {
+  z-index: 2;
+  opacity: 0.88;
+}
+
+.dream-files__item[data-layer="back"] {
+  z-index: 1;
+  opacity: 0.5;
+}
+
+.dream-files__item[data-layer="back"] .dream-files__item-img {
+  filter: blur(0.6px);
 }
 
 .dream-files__item-img {
@@ -60,8 +87,28 @@
   object-fit: cover;
   border-radius: 6px;
   box-shadow: 0 16px 34px -16px rgba(36, 26, 38, 0.5);
-  transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
+  transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out), opacity 280ms var(--ease-out);
   display: block;
+}
+
+/* The gradual background-rotation crossfade (dream-files.ts's
+   performRotation()) — the incoming image is preloaded before this ever
+   triggers, so the fade never reveals a blank or half-loaded picture. */
+.dream-files__item-img.is-fading {
+  opacity: 0;
+}
+
+/* A card whose image couldn't load (dream-files.ts) — a soft paper blank,
+   never a browser broken-image icon. */
+.dream-files__item.is-empty {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--dream-paper) 70%, transparent);
+  box-shadow: 0 16px 34px -16px rgba(36, 26, 38, 0.3);
+}
+
+.dream-files__item.is-empty .dream-files__item-img,
+.dream-files__item.is-empty .dream-files__item-label {
+  visibility: hidden;
 }
 
 .dream-files__item-label {

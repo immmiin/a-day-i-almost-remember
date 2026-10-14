@@ -36,38 +36,56 @@
 .dream-nav__group {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
+  padding: 0.3rem 0.5rem;
   max-width: 100%;
 }
 
+/* "Almost" — a compact editorial wordmark, not an icon. The full title
+   ("A Day I Almost Remember") stays on the landing page and the
+   publication cover; this is deliberately just the one word, set in the
+   same display serif as the rest of the site's editorial type, plain
+   (no italic, no duplicate ghost lettering). It shares the exact same
+   active-dot treatment as the route links below it, just scaled up
+   slightly for its own visual weight, and gets a distinctly larger gap
+   before the links than the links have between each other — the one
+   deliberate typographic break in an otherwise tight, compact group. */
 .dream-nav__brand {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  flex: 0 0 auto;
-  border-radius: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin-right: clamp(1.5rem, 4vw, 2.4rem);
+  padding: 0.15rem 0.05rem;
   color: currentColor;
-  opacity: 0.75;
-  transition: opacity 140ms var(--ease-out), background-color 140ms var(--ease-out);
+  text-decoration: none;
+  opacity: 0.82;
+  transition: opacity 140ms var(--ease-out);
 }
 
-.dream-nav__brand-icon {
-  display: block;
+.dream-nav__brand-label {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+  line-height: 1;
 }
 
-.dream-nav__brand:hover {
+.dream-nav__brand:hover,
+.dream-nav__brand.is-active {
   opacity: 1;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.dream-nav__brand.is-active .dream-nav__link-dot {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .dream-nav__brand:focus-visible {
   opacity: 1;
   outline: 1px solid currentColor;
-  outline-offset: 2px;
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 .dream-nav__links {

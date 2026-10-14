@@ -7,16 +7,17 @@ export function buildDreamNav(active: "files" | "machine" | "zine" | "archive"):
       <span class="dream-nav__link-label">${label}</span>
       <span class="dream-nav__link-dot" aria-hidden="true"></span>
     </a>`;
-  // One centered group — icon and links together, not brand-left/links-right
-  // spread across the full bar — so the header reads as a small floating
-  // control, not a full-width toolbar.
+  const homeActive = active === "files";
+  // One centered group — wordmark and links together, not brand-left/
+  // links-right spread across the full bar — so the header reads as one
+  // small typographic composition, not a full-width toolbar. "Almost" is
+  // the compact nav mark; the full project name stays on the landing
+  // title and the publication covers, not repeated small here.
   nav.innerHTML = `
     <div class="dream-nav__group">
-      <a href="#/" class="dream-nav__brand" aria-label="Home" title="Home">
-        <svg class="dream-nav__brand-icon" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false">
-          <path d="M4 11.5 12 4l8 7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M6 10.3V20h5v-6h2v6h5v-9.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+      <a href="#/" class="dream-nav__brand${homeActive ? " is-active" : ""}" aria-label="A Day I Almost Remember — Home"${homeActive ? ' aria-current="page"' : ""}>
+        <span class="dream-nav__brand-label">Almost</span>
+        <span class="dream-nav__link-dot" aria-hidden="true"></span>
       </a>
       <div class="dream-nav__links">
         ${link("#/machine", "Dream Machine", "machine")}

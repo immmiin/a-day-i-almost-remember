@@ -1,0 +1,602 @@
+[
+  {
+    "id": "1790885985409-080f9957",
+    "filename": "1790885985409-080f9957.png",
+    "webp": "1790885985409-080f9957.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "An ordinary carpeted staircase climbs three normal steps, then turns and continues sideways across the ceiling instead of up, a pair of shoes left neatly at the bottom as if nothing about it is strange",
+    "runId": "run-mupz6aqa-7jw0b",
+    "sceneNumber": 2,
+    "timeOfDay": "morning",
+    "remembers": [
+      "the cold floor",
+      "A woman reaches for a glowing peach floating just beyond her fingertips, while dozens of impossibly long satin ribbons spill from her heart and wrap around it, in a faded pink bedroom — surreal dreaml",
+      "the kettle",
+      "the elevator mirror"
+    ],
+    "forgets": [],
+    "passesForward": [],
+    "createdAt": "2026-10-01T20:19:45.458Z"
+  },
+  {
+    "id": "1790885897722-6fe59d46",
+    "filename": "1790885897722-6fe59d46.png",
+    "webp": "1790885897722-6fe59d46.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A wooden dining chair has gone soft and pillowy like stuffed fabric, visibly dented where someone recently sat, the table and the other ordinary chairs around it unchanged",
+    "runId": "run-mupz6aqa-7jw0b",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "the cold floor",
+      "A woman reaches for a glowing peach floating just beyond her fingertips, while dozens of impossibly long satin ribbons spill from her heart and wrap around it, in a faded pink bedroom — surreal dreaml"
+    ],
+    "createdAt": "2026-10-01T20:18:17.778Z"
+  },
+  {
+    "id": "1790885643458-107dd047",
+    "filename": "1790885643458-107dd047.png",
+    "webp": "1790885643458-107dd047.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "An ordinary carpeted staircase climbs three normal steps, then turns and continues sideways across the ceiling instead of up, a pair of shoes left neatly at the bottom as if nothing about it is strange",
+    "runId": "run-mupz09qw-e76zu",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "desire",
+      "the dog by the door"
+    ],
+    "createdAt": "2026-10-01T20:14:03.509Z"
+  },
+  {
+    "id": "1790191180927-a6954c33",
+    "filename": "1790191180927-a6954c33.png",
+    "webp": "1790191180927-a6954c33.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A woman waters a small candle flame on the windowsill with a tin watering can, the flame flickering but staying lit, an ordinary row of real houseplants beside it",
+    "runId": "run-muehj40f-cle9h",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "my mother's voice from the kitchen",
+      "half window"
+    ],
+    "createdAt": "2026-09-23T19:19:40.988Z"
+  },
+  {
+    "id": "1790139850026-3f7e8b0a",
+    "filename": "1790139850026-3f7e8b0a.png",
+    "webp": "1790139850026-3f7e8b0a.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A row of ordinary wall clocks hangs pinned to a clothesline by wooden clothespins in the backyard, each one still ticking, hung exactly where laundry would normally dry",
+    "runId": "run-mudmz92v-fa5iv",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [
+      "The smell of coffee before I opened my eyes.",
+      "the dog by the door"
+    ],
+    "forgets": [],
+    "passesForward": [],
+    "createdAt": "2026-09-23T05:04:10.092Z"
+  },
+  {
+    "id": "1790139596709-186557db",
+    "filename": "1790139596709-186557db.png",
+    "webp": "1790139596709-186557db.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A full dining table, chairs and place settings included, stands calmly in the middle of a shallow backyard pond, the water reaching halfway up the table legs",
+    "runId": "run-mudid7kk-3vfwe",
+    "sceneNumber": 4,
+    "timeOfDay": "afternoon",
+    "remembers": [
+      "the sun through the window",
+      "The smell of coffee before I opened my eyes."
+    ],
+    "forgets": [
+      "my badge on its lanyard",
+      "the sun through the window"
+    ],
+    "passesForward": [
+      "The smell of coffee before I opened my eyes.",
+      "a meeting invite",
+      "the long shadow of the window frame"
+    ],
+    "createdAt": "2026-09-23T04:59:56.787Z"
+  },
+  {
+    "id": "1790139466651-c1a52796",
+    "filename": "1790139466651-c1a52796.png",
+    "webp": "1790139466651-c1a52796.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A claw-foot bathtub, still half full of water, hangs flush against the bedroom wall at the same height as the framed photographs beside it, a reading lamp lit on the nightstand below",
+    "runId": "run-mudid7kk-3vfwe",
+    "sceneNumber": 3,
+    "timeOfDay": "midday",
+    "remembers": [
+      "my own reflection in the dark window",
+      "my badge on its lanyard",
+      "The smell of coffee before I opened my eyes."
+    ],
+    "forgets": [
+      "my own reflection in the dark window",
+      "the vending machine's hum"
+    ],
+    "passesForward": [
+      "my badge on its lanyard",
+      "the sun through the window",
+      "The smell of coffee before I opened my eyes."
+    ],
+    "createdAt": "2026-09-23T04:57:46.711Z"
+  },
+  {
+    "id": "1790137842371-48f96d3f",
+    "filename": "1790137842371-48f96d3f.png",
+    "webp": "1790137842371-48f96d3f.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "An ordinary carpeted staircase climbs three normal steps, then turns and continues sideways across the ceiling instead of up, a pair of shoes left neatly at the bottom as if nothing about it is strange",
+    "runId": "run-mudid7kk-3vfwe",
+    "sceneNumber": 2,
+    "timeOfDay": "morning",
+    "remembers": [
+      "The smell of coffee before I opened my eyes.",
+      "my own reflection in the dark window"
+    ],
+    "forgets": [
+      "a neighbor watering the plants"
+    ],
+    "passesForward": [
+      "my own reflection in the dark window",
+      "my badge on its lanyard",
+      "The smell of coffee before I opened my eyes."
+    ],
+    "createdAt": "2026-09-23T04:30:42.442Z"
+  },
+  {
+    "id": "1790137742429-859cd05d",
+    "filename": "1790137742429-859cd05d.png",
+    "webp": "1790137742429-859cd05d.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A row of ordinary wall clocks hangs pinned to a clothesline by wooden clothespins in the backyard, each one still ticking, hung exactly where laundry would normally dry",
+    "runId": "run-mudlq9yz-exqjg",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [
+      "The smell of coffee before I opened my eyes.",
+      "my own reflection in the dark window"
+    ],
+    "forgets": [],
+    "passesForward": [],
+    "createdAt": "2026-09-23T04:29:02.496Z"
+  },
+  {
+    "id": "1790137211862-74f5e29c",
+    "filename": "1790137211862-74f5e29c.png",
+    "webp": "1790137211862-74f5e29c.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A row of ordinary wall clocks hangs pinned to a clothesline by wooden clothespins in the backyard, each one still ticking, hung exactly where laundry would normally dry",
+    "runId": "run-mudlem8k-x0frl",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "a glass of water by the bed",
+      "The smell of coffee before I opened my eyes."
+    ],
+    "createdAt": "2026-09-23T04:20:11.929Z"
+  },
+  {
+    "id": "1790132096532-ec0818b5",
+    "filename": "1790132096532-ec0818b5.png",
+    "webp": "1790132096532-ec0818b5.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A row of ordinary wall clocks hangs pinned to a clothesline by wooden clothespins in the backyard, each one still ticking, hung exactly where laundry would normally dry",
+    "runId": "run-mudid7kk-3vfwe",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "The smell of coffee before I opened my eyes.",
+      "my own reflection in the dark window"
+    ],
+    "createdAt": "2026-09-23T02:54:56.602Z"
+  },
+  {
+    "id": "1790095400520-7f05c9b7",
+    "filename": "1790095400520-7f05c9b7.png",
+    "webp": "1790095400520-7f05c9b7.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A claw-foot bathtub, still half full of water, hangs flush against the living room wall at the same height as the family photographs beside it, a reading lamp lit on the side table below",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 12,
+    "timeOfDay": "morning",
+    "remembers": [
+      "the space where someone usually is"
+    ],
+    "forgets": [
+      "the space where someone usually is"
+    ],
+    "passesForward": [
+      "the mirror, showing a face that slept or didn't",
+      "the bus stop sign",
+      "the elevator mirror"
+    ],
+    "createdAt": "2026-09-22T16:43:20.524Z"
+  },
+  {
+    "id": "1790095127315-4e67d0d6",
+    "filename": "1790095127315-4e67d0d6.png",
+    "webp": "1790095127315-4e67d0d6.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "the cold air through a cracked window, but now pocket-sized instead of just my face, dramatically out of proportion with the ordinary room around it, the size difference clearly visible in a wide photograph",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 11,
+    "timeOfDay": "next-morning",
+    "remembers": [
+      "the space where someone usually is"
+    ],
+    "forgets": [
+      "the cold air through a cracked window",
+      "the same light through the same curtain"
+    ],
+    "passesForward": [
+      "the mirror, showing a face that slept or didn't",
+      "the space where someone usually is"
+    ],
+    "createdAt": "2026-09-22T16:38:47.317Z"
+  },
+  {
+    "id": "1790094974689-2557056a",
+    "filename": "1790094974689-2557056a.png",
+    "webp": "1790094974689-2557056a.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "the space where someone usually is, but now the size of one hand instead of person-shaped, dramatically out of proportion with the ordinary room around it, the size difference clearly visible in a wide photograph",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 10,
+    "timeOfDay": "pre-dawn",
+    "remembers": [
+      "the ceiling fan's slow turn"
+    ],
+    "forgets": [
+      "the ceiling fan's slow turn"
+    ],
+    "passesForward": [
+      "the cold air through a cracked window",
+      "the space where someone usually is"
+    ],
+    "createdAt": "2026-09-22T16:36:14.691Z"
+  },
+  {
+    "id": "1790094796616-77975bc6",
+    "filename": "1790094796616-77975bc6.png",
+    "webp": "1790094796616-77975bc6.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "the ceiling fan's slow turn, but now life-sized instead of room-sized, dramatically out of proportion with the ordinary room around it, the size difference clearly visible in a wide photograph",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 9,
+    "timeOfDay": "midnight",
+    "remembers": [
+      "the space where someone usually is",
+      "a half-finished glass on the nightstand"
+    ],
+    "forgets": [
+      "a half-finished glass on the nightstand",
+      "the silence with a shape to it",
+      "the house, fully asleep around me"
+    ],
+    "passesForward": [
+      "the space where someone usually is",
+      "the ceiling fan's slow turn"
+    ],
+    "createdAt": "2026-09-22T16:33:16.619Z"
+  },
+  {
+    "id": "1790077627480-7fe5630c",
+    "filename": "1790077627480-7fe5630c.png",
+    "webp": "1790077627480-7fe5630c.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A wooden dining table stands on three ordinary legs and one tall lit candle instead of a fourth, wax pooling steadily onto the rug below while the table setting on top stays perfectly level",
+    "runId": "run-mucfc22e-ecvdy",
+    "sceneNumber": 3,
+    "timeOfDay": "midday",
+    "remembers": [
+      "the office door",
+      "the alarm clock"
+    ],
+    "forgets": [
+      "a cold glass of water left on the nightstand",
+      "the clock above the door",
+      "a stranger at the next table"
+    ],
+    "passesForward": [
+      "the office door",
+      "the alarm clock"
+    ],
+    "createdAt": "2026-09-22T11:47:07.484Z"
+  },
+  {
+    "id": "1790077445466-87e2c1ee",
+    "filename": "1790077445466-87e2c1ee.png",
+    "webp": "1790077445466-87e2c1ee.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "A garden hose lies coiled on the front lawn exactly as it was left, a fine stream of white flour pouring steadily from its nozzle instead of water, dusting the grass beneath it",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 8,
+    "timeOfDay": "late-night",
+    "remembers": [
+      "the space where someone usually is"
+    ],
+    "forgets": [
+      "a plant on the windowsill"
+    ],
+    "passesForward": [
+      "the space where someone usually is",
+      "the ceiling fan's slow turn",
+      "a half-finished glass on the nightstand"
+    ],
+    "createdAt": "2026-09-22T11:44:05.474Z"
+  },
+  {
+    "id": "1790075965372-91d13b2e",
+    "filename": "1790075965372-91d13b2e.png",
+    "webp": "1790075965372-91d13b2e.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 7,
+    "timeOfDay": "night",
+    "remembers": [
+      "the orange light on the buildings",
+      "my own tired face in the bathroom mirror"
+    ],
+    "forgets": [
+      "the orange light on the buildings",
+      "my own tired face in the bathroom mirror"
+    ],
+    "passesForward": [
+      "a plant on the windowsill",
+      "the space where someone usually is"
+    ],
+    "createdAt": "2026-09-22T11:19:25.379Z"
+  },
+  {
+    "id": "1790075831688-bd67739c",
+    "filename": "1790075831688-bd67739c.png",
+    "webp": "1790075831688-bd67739c.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 6,
+    "timeOfDay": "evening",
+    "remembers": [
+      "a plant on the windowsill",
+      "the orange light on the buildings"
+    ],
+    "forgets": [
+      "a half open window and kitchen",
+      "the couch cushion, still warm from earlier"
+    ],
+    "passesForward": [
+      "the orange light on the buildings",
+      "a plant on the windowsill",
+      "my own tired face in the bathroom mirror"
+    ],
+    "createdAt": "2026-09-22T11:17:11.692Z"
+  },
+  {
+    "id": "1790073429758-d49213e6",
+    "filename": "1790073429758-d49213e6.png",
+    "webp": "1790073429758-d49213e6.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 5,
+    "timeOfDay": "dusk",
+    "remembers": [
+      "a plant on the windowsill",
+      "a half open window and kitchen"
+    ],
+    "forgets": [
+      "my reflection in the train window"
+    ],
+    "passesForward": [
+      "a plant on the windowsill",
+      "a half open window and kitchen",
+      "the orange light on the buildings"
+    ],
+    "createdAt": "2026-09-22T10:37:09.766Z"
+  },
+  {
+    "id": "1790073053194-19fe0134",
+    "filename": "1790073053194-19fe0134.png",
+    "webp": "1790073053194-19fe0134.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 4,
+    "timeOfDay": "afternoon",
+    "remembers": [
+      "the sun through the window"
+    ],
+    "forgets": [
+      "the sun through the window",
+      "the radiator ticking"
+    ],
+    "passesForward": [
+      "a plant on the windowsill",
+      "a half open window and kitchen"
+    ],
+    "createdAt": "2026-09-22T10:30:53.204Z"
+  },
+  {
+    "id": "1790071853973-9d2917c0",
+    "filename": "1790071853973-9d2917c0.png",
+    "webp": "1790071853973-9d2917c0.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 3,
+    "timeOfDay": "midday",
+    "remembers": [
+      "the bus stop sign",
+      "my mother's voice from the kitchen"
+    ],
+    "forgets": [
+      "the bus stop sign",
+      "my mother's voice from the kitchen"
+    ],
+    "passesForward": [
+      "the sun through the window",
+      "a half open window and kitchen"
+    ],
+    "createdAt": "2026-09-22T10:10:53.976Z"
+  },
+  {
+    "id": "1790071495174-5ba17946",
+    "filename": "1790071495174-5ba17946.png",
+    "webp": "1790071495174-5ba17946.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 2,
+    "timeOfDay": "morning",
+    "remembers": [
+      "a half open window and kitchen"
+    ],
+    "forgets": [],
+    "passesForward": [
+      "the bus stop sign",
+      "my mother's voice from the kitchen",
+      "a half open window and kitchen"
+    ],
+    "createdAt": "2026-09-22T10:04:55.178Z"
+  },
+  {
+    "id": "1790071174054-eeafe835",
+    "filename": "1790071174054-eeafe835.png",
+    "webp": "1790071174054-eeafe835.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "a half open window and kitchen",
+    "runId": "run-muci40yd-9zgln",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "my mother's voice from the kitchen",
+      "a half open window and kitchen"
+    ],
+    "createdAt": "2026-09-22T09:59:34.057Z"
+  },
+  {
+    "id": "1790069521073-0cb5e10e",
+    "filename": "1790069521073-0cb5e10e.png",
+    "webp": "1790069521073-0cb5e10e.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "",
+    "runId": "run-mucg5vw8-zt1xl",
+    "sceneNumber": 2,
+    "timeOfDay": "morning",
+    "remembers": [
+      "sea in the kitchen and women cooking steak",
+      "a dream I was still holding"
+    ],
+    "forgets": [],
+    "passesForward": [
+      "the office door",
+      "a dream I was still holding",
+      "sea in the kitchen and women cooking steak"
+    ],
+    "createdAt": "2026-09-22T09:32:01.077Z"
+  },
+  {
+    "id": "1790067940758-69d10f80",
+    "filename": "1790067940758-69d10f80.png",
+    "webp": "1790067940758-69d10f80.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "The scene includes: sea in the kitchen and women cooking steak; a dream I was still holding",
+    "runId": "run-mucg5vw8-zt1xl",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "sea in the kitchen and women cooking steak",
+      "a dream I was still holding"
+    ],
+    "createdAt": "2026-09-22T09:05:40.762Z"
+  },
+  {
+    "id": "1790066832620-16e4ab3b",
+    "filename": "1790066832620-16e4ab3b.png",
+    "webp": "1790066832620-16e4ab3b.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "The scene includes: the alarm clock; the office door",
+    "runId": "run-mucfc22e-ecvdy",
+    "sceneNumber": 2,
+    "timeOfDay": "morning",
+    "remembers": [
+      "the alarm clock"
+    ],
+    "forgets": [],
+    "passesForward": [
+      "a cold glass of water left on the nightstand",
+      "the office door",
+      "the alarm clock"
+    ],
+    "createdAt": "2026-09-22T08:47:12.623Z"
+  },
+  {
+    "id": "1790066668207-c867eb37",
+    "filename": "1790066668207-c867eb37.png",
+    "webp": "1790066668207-c867eb37.webp",
+    "width": 768,
+    "height": 768,
+    "caption": "The scene includes: a cold glass of water left on the nightstand; the alarm clock",
+    "runId": "run-mucfc22e-ecvdy",
+    "sceneNumber": 1,
+    "timeOfDay": "early-morning",
+    "remembers": [],
+    "forgets": [],
+    "passesForward": [
+      "a cold glass of water left on the nightstand",
+      "the alarm clock"
+    ],
+    "createdAt": "2026-09-22T08:44:28.212Z"
+  }
+]

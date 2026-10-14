@@ -9,3 +9,4 @@ dist
 tsconfig.tsbuildinfo
 server/generated/
 server/data/
+.claude/scheduled_tasks.lock

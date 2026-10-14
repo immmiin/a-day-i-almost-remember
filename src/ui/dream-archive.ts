@@ -1,8 +1,8 @@
 import { buildDreamNav } from "./dream-nav";
 import { escapeHtml } from "./util";
-import { listRuns, deleteRun, exportSpreadPdf, absoluteUrl, type RunSummary } from "./dream-api";
+import { listRuns, deleteRun, exportSpreadPdf, absoluteUrl, BACKEND_POSSIBLE, type RunSummary } from "./dream-api";
+import { loadGallery, galleryImageUrl, type GalleryEntry } from "./gallery";
 import { renderCoverFace, resolveCoverConfig } from "./zine-cover";
-import { PLACEHOLDER_ASSETS } from "./placeholder-assets";
 
 type Filter = "all" | "completed" | "drafts";
 type ViewMode = "collection" | "index";
@@ -30,6 +30,7 @@ export function renderDreamArchive(root: HTMLElement): () => void {
 
   let runs: RunSummary[] = [];
   let backendReachable = true;
+  let generationsHtml = "";
   let filter: Filter = "all";
   let viewMode: ViewMode = "collection";
   let selectedId: string | null = null;
@@ -52,12 +53,14 @@ export function renderDreamArchive(root: HTMLElement): () => void {
   }
 
   async function load(): Promise<void> {
+    const gallery = loadGallery();
     try {
       runs = await listRuns();
       backendReachable = true;
     } catch {
       backendReachable = false;
     }
+    generationsHtml = paintGenerations((await gallery) ?? []);
     ensureSelection();
     paint();
   }
@@ -94,37 +97,62 @@ export function renderDreamArchive(root: HTMLElement): () => void {
 
       ${
         !backendReachable
-          ? `<p class="dream-archive__empty">The local backend isn't reachable right now, so saved runs can't be listed. Start it with <code>npm run server</code>.</p>`
+          ? BACKEND_POSSIBLE
+            ? `<p class="dream-archive__empty">The local backend isn't reachable right now, so saved runs can't be listed. Start it with <code>npm run server</code>.</p>`
+            : ""
           : ""
       }
 
       ${
         list.length === 0
-          ? paintEmptyState()
+          ? backendReachable
+            ? paintEmptyState()
+            : ""
           : viewMode === "collection"
             ? paintCollection(list, selectedIndex, selected)
             : paintIndex(list)
       }
 
-      <section class="dream-archive__section dream-archive__refs">
-        <h2 class="dream-archive__section-title">Reference Materials</h2>
-        <p class="dream-archive__meta">mood references only — never generated, never part of an exported issue</p>
-        <div class="dream-archive__grid dream-archive__grid--refs">
-          ${PLACEHOLDER_ASSETS.map(
-            (a) => `
-            <figure class="dream-archive__ref">
-              <div class="dream-badge">reference / mood only</div>
-              <img src="${a.src}" alt="${escapeHtml(a.title)}" loading="lazy" />
-              <figcaption>${escapeHtml(a.title)}</figcaption>
-            </figure>`,
-          ).join("")}
-        </div>
-      </section>
+      ${generationsHtml}
 
-      <footer class="dream-archive__footnote">saved on this device only — nothing here is shared or uploaded anywhere</footer>
+      <footer class="dream-archive__footnote">${BACKEND_POSSIBLE ? "saved on this device only — nothing here is shared or uploaded anywhere" : "a published snapshot of the dream archive"}</footer>
     `;
 
     wireEvents(list, selectedIndex);
+  }
+
+  // Every saved generation, newest first, from the static manifest — needs
+  // no backend, so it's the part of the archive a static deploy can show.
+  function paintGenerations(entries: GalleryEntry[]): string {
+    if (entries.length === 0) return "";
+    const dateFmt = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const items = entries
+      .map((e) => {
+        const meta = [
+          e.sceneNumber != null ? `scene ${e.sceneNumber}` : "",
+          e.timeOfDay ?? "",
+          e.createdAt ? dateFmt.format(new Date(e.createdAt)) : "",
+        ].filter(Boolean);
+        return `
+          <figure class="dream-archive__gen">
+            <div class="dream-archive__gen-frame">
+              <img class="dream-archive__gen-img" src="${galleryImageUrl(e)}" width="${e.width}" height="${e.height}" loading="lazy" decoding="async" alt="${escapeHtml(e.caption || "A saved dream scene")}" />
+            </div>
+            <figcaption>
+              ${e.caption ? `<p class="dream-archive__gen-caption">${escapeHtml(e.caption)}</p>` : ""}
+              <p class="dream-archive__gen-meta">${escapeHtml(meta.join(" · "))}</p>
+            </figcaption>
+          </figure>`;
+      })
+      .join("");
+    return `
+      <section class="dream-archive__generations" aria-labelledby="dream-archive-generations-title">
+        <div class="dream-archive__generations-head">
+          <h2 class="dream-archive__label" id="dream-archive-generations-title">All generations</h2>
+          <span class="dream-archive__gen-count">${entries.length} ${entries.length === 1 ? "image" : "images"}</span>
+        </div>
+        <div class="dream-archive__gen-grid">${items}</div>
+      </section>`;
   }
 
   function paintEmptyState(): string {
@@ -143,6 +171,13 @@ export function renderDreamArchive(root: HTMLElement): () => void {
 
   function statusLabel(r: RunSummary): string {
     return r.completed ? "Completed" : "Draft";
+  }
+
+  // The public deploy only has the PDFs that were actually exported, so it
+  // falls back to the single-page edition when no spread edition exists.
+  function readUrl(r: RunSummary): string {
+    if (!BACKEND_POSSIBLE && !r.hasSpreadPdf) return absoluteUrl(`/pdfs/${r.id}.pdf`);
+    return absoluteUrl(`/pdfs/${r.id}-spreads.pdf`);
   }
 
   function infoPanel(r: RunSummary): string {
@@ -168,11 +203,15 @@ export function renderDreamArchive(root: HTMLElement): () => void {
       </dl>
       <div class="dream-archive__info-actions">
         ${
-          r.completed
-            ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + "-spreads.pdf")}" target="_blank" rel="noopener">Read issue</a>`
+          !BACKEND_POSSIBLE
+            ? r.completed
+              ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${readUrl(r)}" target="_blank" rel="noopener">Read issue</a>`
+              : ""
+            : r.completed
+            ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${readUrl(r)}" target="_blank" rel="noopener">Read issue</a>`
             : `<a class="dream-archive__btn dream-archive__btn--primary" href="#/zine?run=${encodeURIComponent(r.id)}">Continue editing</a>`
         }
-        <details class="dream-archive__more">
+        ${BACKEND_POSSIBLE ? `<details class="dream-archive__more">
           <summary>More</summary>
           <div class="dream-archive__more-menu">
             <a class="dream-archive__btn--ghost" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>
@@ -185,7 +224,7 @@ export function renderDreamArchive(root: HTMLElement): () => void {
                 : `<button type="button" class="dream-archive__btn--ghost dream-archive__btn--ghost-danger" data-delete-run="${escapeHtml(r.id)}">Delete draft</button>`
             }
           </div>
-        </details>
+        </details>` : ""}
       </div>
     `;
   }
@@ -266,8 +305,12 @@ export function renderDreamArchive(root: HTMLElement): () => void {
               <p class="dream-archive__index-meta">${r.completed ? `Issue ${r.issueNumber}` : "Draft"} · ${new Date(r.createdAt).toLocaleDateString()}</p>
               <div class="dream-archive__index-actions">
                 ${
-                  r.completed
-                    ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${absoluteUrl("/pdfs/" + r.id + "-spreads.pdf")}" target="_blank" rel="noopener">Read issue</a>
+                  !BACKEND_POSSIBLE
+                    ? r.completed
+                      ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${readUrl(r)}" target="_blank" rel="noopener">Read issue</a>`
+                      : ""
+                    : r.completed
+                    ? `<a class="dream-archive__btn dream-archive__btn--primary" href="${readUrl(r)}" target="_blank" rel="noopener">Read issue</a>
                        <a class="dream-archive__btn" href="#/zine?run=${encodeURIComponent(r.id)}">Edit in Zine Studio</a>`
                     : `<a class="dream-archive__btn dream-archive__btn--primary" href="#/zine?run=${encodeURIComponent(r.id)}">Continue editing</a>
                        <a class="dream-archive__btn" href="#/machine?resume=${encodeURIComponent(r.id)}">Continue dreaming</a>`
@@ -316,7 +359,7 @@ export function renderDreamArchive(root: HTMLElement): () => void {
         const current = list[selectedIndex];
         if (current?.completed) {
           e.preventDefault();
-          window.open(absoluteUrl(`/pdfs/${current.id}-spreads.pdf`), "_blank", "noopener");
+          window.open(readUrl(current), "_blank", "noopener");
         }
       }
     });
@@ -443,6 +486,20 @@ export function renderDreamArchive(root: HTMLElement): () => void {
       });
     });
   }
+
+  // A generation whose file can't load leaves a soft blank frame rather
+  // than a broken-image icon (error events don't bubble, hence capture).
+  section.addEventListener(
+    "error",
+    (e) => {
+      const img = e.target;
+      if (img instanceof HTMLImageElement && img.classList.contains("dream-archive__gen-img")) {
+        img.closest(".dream-archive__gen")?.classList.add("is-empty");
+        img.removeAttribute("src");
+      }
+    },
+    { capture: true, signal },
+  );
 
   load();
   return () => {

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, "data");
 const RUNS_FILE = join(DATA_DIR, "runs.json");
+const GENERATED_DIR = join(__dirname, "generated");
 
 async function ensureStore() {
   await mkdir(DATA_DIR, { recursive: true });
@@ -102,4 +103,43 @@ export async function deleteRun(runId) {
   const runs = await readRuns();
   const next = runs.filter((r) => r.id !== runId);
   await writeRuns(next);
+}
+
+/**
+ * Every successfully generated, still-on-disk image across every saved run
+ * — drafts and completed issues alike, whether or not it's currently
+ * assigned to a publication page — with enough provenance to trace it back
+ * to its run and scene. This is the landing page's real source pool (see
+ * src/ui/dream-files.ts), not just the current run or cover images.
+ *
+ * A scene only ever gets an entry in `run.scenes` once generation actually
+ * succeeded and the file was written (server/index.mjs's generateImage()),
+ * so there's no separate "failed" or "temporary" state to filter out here
+ * — the one honest check left is that the file is still actually on disk
+ * (it could have been removed by hand outside the app), which also
+ * incidentally de-duplicates: two scenes can never legitimately share a
+ * generated filename, but this guards against a corrupted record anyway.
+ */
+export async function listAllImages() {
+  const runs = await readRuns();
+  const seen = new Set();
+  const images = [];
+  for (const r of runs) {
+    for (const s of r.scenes ?? []) {
+      if (!s.imageUrl || seen.has(s.imageUrl)) continue;
+      const filePath = s.imageUrl.startsWith("/generations/")
+        ? join(__dirname, "..", "public", s.imageUrl)
+        : join(GENERATED_DIR, s.imageUrl.replace(/^\/images\//, ""));
+      if (!existsSync(filePath)) continue;
+      seen.add(s.imageUrl);
+      images.push({
+        url: s.imageUrl,
+        runId: r.id,
+        sceneIndex: s.index,
+        timeOfDay: s.timeOfDay ?? null,
+        createdAt: s.createdAt ?? r.createdAt,
+      });
+    }
+  }
+  return images;
 }

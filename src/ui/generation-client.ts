@@ -5,13 +5,18 @@
  * and a failure reports honestly rather than substituting a placeholder.
  */
 
-const GENERATION_ENDPOINT = "http://localhost:8787/api/generate";
-const HEALTH_ENDPOINT = "http://localhost:8787/api/health";
+import { backendFetch } from "./dream-api";
+
+// Loopback IPv4, matching where server/index.mjs binds.
+const GENERATION_ENDPOINT = "http://127.0.0.1:8787/api/generate";
+const HEALTH_ENDPOINT = "http://127.0.0.1:8787/api/health";
 // Local generation genuinely takes 1-3+ minutes depending on size/steps;
 // this is a ceiling against a truly stuck request, not an expected wait.
 const REQUEST_TIMEOUT_MS = 6 * 60 * 1000;
 
 export interface GenerationRequest {
+  /** lets the backend file the saved image under its run in the gallery manifest */
+  runId?: string;
   timeOfDay: string;
   sceneIndex: number;
   /** only meaningful for the opening scene, which has no inherited fragments yet */
@@ -39,7 +44,7 @@ export async function requestGeneration(
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const res = await fetch(GENERATION_ENDPOINT, {
+    const res = await backendFetch(GENERATION_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ width: 768, height: 768, steps: 12, ...req }),
@@ -61,12 +66,19 @@ export async function requestGeneration(
   }
 }
 
-export async function checkBackend(): Promise<{ connected: boolean; model?: string }> {
+export type GeneratorStatus = "ready" | "backend-down" | "drawthings-down";
+
+/**
+ * Where the local generation chain stands: the backend itself unreachable,
+ * the backend up but Draw Things not answering it, or both ready.
+ */
+export async function checkBackend(): Promise<{ status: GeneratorStatus; model?: string }> {
   try {
-    const res = await fetch(HEALTH_ENDPOINT, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return { connected: false };
-    return (await res.json()) as { connected: boolean; model?: string };
+    const res = await backendFetch(HEALTH_ENDPOINT, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return { status: "backend-down" };
+    const data = (await res.json()) as { connected?: boolean; model?: string };
+    return data.connected ? { status: "ready", model: data.model } : { status: "drawthings-down" };
   } catch {
-    return { connected: false };
+    return { status: "backend-down" };
   }
 }

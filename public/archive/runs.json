@@ -1,0 +1,142 @@
+[
+  {
+    "id": "run-mupz6aqa-7jw0b",
+    "seedText": "A woman reaches for a glowing peach floating just beyond her fingertips, while dozens of impossibly long satin ribbons spill from her heart and wrap around it, in a faded pink bedroom — surreal dreaml",
+    "createdAt": "2026-10-01T20:16:54.994Z",
+    "sceneCount": 1,
+    "coverImageUrl": "/generations/1790885897722-6fe59d46.png",
+    "completed": true,
+    "zineTitle": "A woman reaches for a glowing peach floating just beyond her fingertips, while dozens of impossibly long satin ribbons spill from her heart and wrap around it, in a faded pink bedroom — surreal dreaml",
+    "cover": {
+      "sceneIndex": 0,
+      "title": "",
+      "posterLine": "",
+      "focalX": 50,
+      "focalY": 38,
+      "contrast": "ink",
+      "showText": true,
+      "backShowText": true
+    },
+    "issueNumber": 52,
+    "filledPageCount": 1,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-mupz09qw-e76zu",
+    "seedText": "desire",
+    "createdAt": "2026-10-01T20:12:13.784Z",
+    "sceneCount": 1,
+    "coverImageUrl": "/generations/1790885643458-107dd047.png",
+    "completed": false,
+    "zineTitle": null,
+    "cover": null,
+    "issueNumber": 50,
+    "filledPageCount": 0,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-muehj40f-cle9h",
+    "seedText": "half window",
+    "createdAt": "2026-09-23T19:17:31.791Z",
+    "sceneCount": 1,
+    "coverImageUrl": "/generations/1790191180927-a6954c33.png",
+    "completed": false,
+    "zineTitle": null,
+    "cover": null,
+    "issueNumber": 34,
+    "filledPageCount": 0,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-mudlem8k-x0frl",
+    "seedText": "The smell of coffee before I opened my eyes.",
+    "createdAt": "2026-09-23T04:18:14.420Z",
+    "sceneCount": 1,
+    "coverImageUrl": "/generations/1790137211862-74f5e29c.png",
+    "completed": false,
+    "zineTitle": null,
+    "cover": null,
+    "issueNumber": 23,
+    "filledPageCount": 0,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-mudid7kk-3vfwe",
+    "seedText": "The smell of coffee before I opened my eyes.",
+    "createdAt": "2026-09-23T02:53:09.908Z",
+    "sceneCount": 4,
+    "coverImageUrl": "/generations/1790132096532-ec0818b5.png",
+    "completed": false,
+    "zineTitle": "The smell of coffee before I opened my eyes.",
+    "cover": {
+      "sceneIndex": 0,
+      "title": "",
+      "posterLine": "",
+      "focalX": 50,
+      "focalY": 38,
+      "contrast": "ink",
+      "showText": true,
+      "backShowText": true
+    },
+    "issueNumber": 21,
+    "filledPageCount": 3,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-muci40yd-9zgln",
+    "seedText": "a half open window and kitchen",
+    "createdAt": "2026-09-22T09:58:15.253Z",
+    "sceneCount": 12,
+    "coverImageUrl": "/images/1790073429758-d49213e6.png",
+    "completed": true,
+    "zineTitle": "a half open window and kitchen",
+    "cover": {
+      "sceneIndex": 4,
+      "title": "",
+      "posterLine": "",
+      "focalX": 50,
+      "focalY": 38,
+      "contrast": "ink",
+      "showText": true,
+      "backShowText": true
+    },
+    "issueNumber": 3,
+    "filledPageCount": 14,
+    "hasSpreadPdf": true
+  },
+  {
+    "id": "run-mucg5vw8-zt1xl",
+    "seedText": "sea in the kitchen and women cooking steak",
+    "createdAt": "2026-09-22T09:03:42.776Z",
+    "sceneCount": 2,
+    "coverImageUrl": "/images/1790067940758-69d10f80.png",
+    "completed": true,
+    "zineTitle": "sea in the kitchen and women cooking steak",
+    "cover": null,
+    "issueNumber": 2,
+    "filledPageCount": 2,
+    "hasSpreadPdf": false
+  },
+  {
+    "id": "run-mucfc22e-ecvdy",
+    "seedText": "a cold glass of water left on the nightstand",
+    "createdAt": "2026-09-22T08:40:31.094Z",
+    "sceneCount": 3,
+    "coverImageUrl": "/images/1790066832620-16e4ab3b.png",
+    "completed": true,
+    "zineTitle": "a cold glass of water left on the nightstand",
+    "cover": {
+      "sceneIndex": 1,
+      "title": "",
+      "posterLine": "",
+      "focalX": 50,
+      "focalY": 15,
+      "contrast": "paper",
+      "showText": true,
+      "backShowText": true
+    },
+    "issueNumber": 1,
+    "filledPageCount": 3,
+    "hasSpreadPdf": true
+  }
+]

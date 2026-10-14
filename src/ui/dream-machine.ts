@@ -3,8 +3,8 @@ import { DreamRunClient, fragmentsForGeneration, DEFAULT_SEED_TEXT } from "../ge
 import { STAGE_THEME, applyStageTheme } from "./dream-machine-theme";
 import { buildDreamNav } from "./dream-nav";
 import { escapeHtml, publicationCaption } from "./util";
-import { requestGeneration } from "./generation-client";
-import { createRun, saveScene, getRun, saveZinePages, absoluteUrl, type SavedScene, type ZinePageEntry } from "./dream-api";
+import { requestGeneration, checkBackend, type GeneratorStatus } from "./generation-client";
+import { createRun, saveScene, getRun, saveZinePages, absoluteUrl, BACKEND_POSSIBLE, type SavedScene, type ZinePageEntry } from "./dream-api";
 import { resolveCoverConfig } from "./zine-cover";
 
 type SceneState = "idle" | "generating" | "generated" | "error";
@@ -36,7 +36,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
   // "idle" the instant they were set. It's set explicitly at every
   // transition: on navigating to a scene, and inside startGeneration().
   let sceneState: SceneState = "idle";
-  let lastErrorReason: "not-connected" | "failed" | null = null;
+  let lastErrorReason: "not-connected" | "failed" | Exclude<GeneratorStatus, "ready"> | null = null;
   let saveNote = "";
   let abortController: AbortController | null = null;
   let ready = false;
@@ -46,10 +46,21 @@ export function renderDreamMachine(root: HTMLElement): () => void {
   // scenes generated afterward on this same visit unless the user regenerates.
   let showTargetPrompt = false;
   let insertingToPage = false;
+  // Authoring mode is decided by where the page is served from, never by
+  // whether the generator happens to be up: on the artist's own machine the
+  // generate controls always show, and a down backend or Draw Things is
+  // reported as a connection error with Retry. Visitors (any non-local host)
+  // get the quiet viewer note instead and never contact localhost.
+  const authoring = BACKEND_POSSIBLE;
+  const VIEWER_NOTE = `Generation runs on the artist's machine. <a href="#/archive">Browse the archive</a>.`;
+  let checkingConnection = false;
 
   async function init(): Promise<void> {
+    const generatorCheck = authoring ? checkBackend() : null;
     if (resumeId) {
-      const run = await getRun(resumeId);
+      // Backend unreachable (Draw Things session off, or the static deploy)
+      // is treated like a missing run: start fresh rather than hang on "loading…".
+      const run = await getRun(resumeId).catch(() => null);
       if (run) {
         for (const s of run.scenes) saved.set(s.index, s);
         const sceneObjects: Scene[] = run.scenes.map((s) => {
@@ -80,9 +91,16 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     } else {
       const seedText = seedParam ? decodeURIComponent(seedParam) : DEFAULT_SEED_TEXT;
       client = new DreamRunClient(seedText);
-      await createRun(client.id, seedText, client.createdAt);
+      // Persisting the run needs the local backend; without it the scene view
+      // still renders, and Generate reports "not reachable" as usual.
+      await createRun(client.id, seedText, client.createdAt).catch(() => undefined);
     }
     sceneState = stateForIndex(index);
+    const status = (await generatorCheck)?.status;
+    if (status && status !== "ready" && sceneState === "idle") {
+      lastErrorReason = status;
+      sceneState = "error";
+    }
     ready = true;
     render();
   }
@@ -111,17 +129,28 @@ export function renderDreamMachine(root: HTMLElement): () => void {
         </div>`;
     }
     if (sceneState === "error") {
+      const connectionError = isConnectionError();
       const note =
-        lastErrorReason === "not-connected"
-          ? "Draw Things isn't reachable at localhost:7860, or the backend at localhost:8787 isn't running."
-          : "Draw Things responded with an error — it may still be busy with a previous request. Check its window, then retry.";
+        lastErrorReason === "backend-down"
+          ? "The local generation backend isn't running at 127.0.0.1:8787. Start it with npm run server (or npm run studio), then retry."
+          : lastErrorReason === "drawthings-down"
+            ? "Draw Things isn't answering at 127.0.0.1:7860. In Draw Things, turn on API Server (HTTP, port 7860), then retry."
+            : lastErrorReason === "not-connected"
+              ? "Draw Things isn't reachable at 127.0.0.1:7860, or the backend at 127.0.0.1:8787 isn't running."
+              : "Draw Things responded with an error — it may still be busy with a previous request. Check its window, then retry.";
       return `
         <div class="dream-machine__overlay">
           <div class="dream-machine__overlay-card">
-            <p class="dream-machine__overlay-text">Generation didn't complete.</p>
+            <p class="dream-machine__overlay-text">${connectionError ? "Not connected to the local generator." : "Generation didn't complete."}</p>
             <p class="dream-machine__overlay-note">${escapeHtml(note)}</p>
-            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-retry"><span class="dream-machine__btn-label">Retry</span></button>
+            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-retry" ${checkingConnection ? "disabled aria-disabled=\"true\"" : ""} aria-busy="${checkingConnection}"><span class="dream-machine__btn-label">${checkingConnection ? "Checking connection…" : "Retry"}</span></button>
           </div>
+        </div>`;
+    }
+    if (sceneState === "idle" && !authoring) {
+      return `
+        <div class="dream-machine__idle">
+          <p class="dream-machine__idle-text">This scene hasn't taken shape yet.</p>
         </div>`;
     }
     if (sceneState === "idle") {
@@ -230,12 +259,15 @@ export function renderDreamMachine(root: HTMLElement): () => void {
               }
             </div>
           </details>
-          <div class="dream-machine__controls">
-            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-generate-main" ${sceneState === "generating" ? "disabled aria-disabled=\"true\"" : ""} aria-busy="${sceneState === "generating"}">
+          ${
+            !authoring
+              ? `<div class="dream-machine__controls"><p class="dream-machine__target-note">${VIEWER_NOTE}</p></div>`
+              : `<div class="dream-machine__controls">
+            <button type="button" class="dream-machine__btn dream-machine__btn--primary" id="dm-generate-main" ${sceneState === "generating" || checkingConnection ? "disabled aria-disabled=\"true\"" : ""} aria-busy="${sceneState === "generating"}">
               <span class="dream-machine__btn-label">${
                 sceneState === "generating"
                   ? "Generating locally…"
-                  : sceneState === "error"
+                  : sceneState === "error" && !isConnectionError()
                     ? "Generation failed — Retry"
                     : savedScene
                       ? "Regenerate this scene"
@@ -262,7 +294,8 @@ export function renderDreamMachine(root: HTMLElement): () => void {
                   </div>
                   ${saved.size > 0 ? `<a class="dream-machine__btn" href="#/zine?run=${encodeURIComponent(client.id)}">Back to Zine Studio</a>` : ""}`
             }
-          </div>
+          </div>`
+          }
           <p class="dream-machine__setup-note">
             Runs locally through Draw Things (FLUX.1 Kontext dev) — no cloud, no per-image cost. This
             scene only ever receives the fragments shown above, never a prior image.
@@ -273,7 +306,12 @@ export function renderDreamMachine(root: HTMLElement): () => void {
 
     section.querySelector<HTMLButtonElement>("#dm-generate")?.addEventListener("click", startGeneration);
     section.querySelector<HTMLButtonElement>("#dm-generate-main")?.addEventListener("click", startGeneration);
-    section.querySelector<HTMLButtonElement>("#dm-retry")?.addEventListener("click", startGeneration);
+    // A connection error's Retry only re-checks the connection — it never
+    // starts a generation by itself; a generation error's Retry regenerates.
+    section.querySelector<HTMLButtonElement>("#dm-retry")?.addEventListener("click", () => {
+      if (isConnectionError()) void recheckConnection();
+      else void startGeneration();
+    });
     section.querySelector<HTMLButtonElement>("#dm-cancel")?.addEventListener("click", () => abortController?.abort());
     section.querySelector<HTMLButtonElement>("#dm-save")?.addEventListener("click", async () => {
       const s = saved.get(index);
@@ -328,12 +366,32 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     });
   }
 
+  function isConnectionError(): boolean {
+    return lastErrorReason === "backend-down" || lastErrorReason === "drawthings-down" || lastErrorReason === "not-connected";
+  }
+
+  async function recheckConnection(): Promise<void> {
+    if (checkingConnection || generationInFlight) return;
+    checkingConnection = true;
+    render();
+    const { status } = await checkBackend();
+    checkingConnection = false;
+    if (status === "ready") {
+      lastErrorReason = null;
+      sceneState = stateForIndex(index);
+    } else {
+      lastErrorReason = status;
+      sceneState = "error";
+    }
+    render();
+  }
+
   async function startGeneration(): Promise<void> {
     // In-flight lock: belt-and-suspenders alongside the disabled button
     // attribute, so a rapid double-click (which can land before the
     // synchronous render() below has actually disabled the DOM button)
     // can never fire two requests for the same scene.
-    if (generationInFlight) return;
+    if (generationInFlight || checkingConnection) return;
     generationInFlight = true;
     showTargetPrompt = false;
     const fragScene = ensureFragmentScene(index);
@@ -343,6 +401,7 @@ export function renderDreamMachine(root: HTMLElement): () => void {
     abortController = new AbortController();
     const result = await requestGeneration(
       {
+        runId: client.id,
         timeOfDay: fragScene.timeOfDay,
         sceneIndex: index,
         seedText: index === 0 ? client.seedText : undefined,
@@ -366,11 +425,17 @@ export function renderDreamMachine(root: HTMLElement): () => void {
         createdAt: new Date().toISOString(),
       };
       saved.set(index, record);
-      await saveScene(client.id, record);
+      // A failed save must not strand the view in "generating" — the image
+      // is already shown, and the Save button can retry persisting it.
+      await saveScene(client.id, record).catch(() => undefined);
       sceneState = "generated";
       if (targetPage !== null) showTargetPrompt = true;
     } else if (result.reason !== "cancelled") {
-      lastErrorReason = result.reason;
+      // Re-check after any failure: with Draw Things off the backend answers
+      // 502 ("failed"), which is really a connection problem — report which
+      // link is down so Retry re-checks instead of regenerating.
+      const { status } = await checkBackend();
+      lastErrorReason = status === "ready" ? result.reason : status;
       sceneState = "error";
     } else {
       sceneState = saved.has(index) ? "generated" : "idle";
